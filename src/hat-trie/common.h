@@ -7,7 +7,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
-typedef uint64_t value_t;
+typedef uint8_t * slot_t;
+typedef uint64_t  value_t;
+typedef struct htr_table_iter_t htr_table_iter;
+
 typedef uint32_t ( * hash_function ) ( const uint8_t * data, size_t len );
 
 #endif

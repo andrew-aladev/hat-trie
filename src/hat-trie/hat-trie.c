@@ -6,7 +6,7 @@
  */
 
 #include "hat-trie.h"
-#include "ahtable.h"
+#include "table.h"
 #include <assert.h>
 #include <string.h>
 
@@ -28,7 +28,7 @@ struct trie_node_t_;
 /* Node's may be trie nodes or buckets. This union allows us to keep
  * non-specific pointer. */
 typedef union node_ptr_ {
-    ahtable_t*           b;
+    htr_table *           b;
     struct trie_node_t_* t;
     uint8_t*             flag;
 } node_ptr;
@@ -40,7 +40,7 @@ typedef struct trie_node_t_ {
     /* the value for the key that is consumed on a trie node */
     value_t val;
 
-    /* Map a character to either a trie_node_t or a ahtable_t. The first byte
+    /* Map a character to either a trie_node_t or a htr_table_t. The first byte
      * must be examined to determine which. */
     node_ptr xs[NODE_CHILDS];
 
@@ -140,7 +140,7 @@ hattrie_t* hattrie_create()
     T->m = 0;
 
     node_ptr node;
-    node.b = ahtable_create();
+    node.b = htr_table_create();
     node.b->flag = NODE_TYPE_HYBRID_BUCKET;
     node.b->c0 = 0x00;
     node.b->c1 = NODE_MAXCHAR;
@@ -163,7 +163,7 @@ static void hattrie_free_node ( node_ptr node )
         }
         free ( node.t );
     } else {
-        ahtable_free ( node.b );
+        htr_table_free ( node.b );
     }
 }
 
@@ -189,12 +189,12 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
         parent.t->xs[node.b->c0].t = alloc_trie_node ( T, node );
 
         /* if the bucket had an empty key, move it to the new trie node */
-        value_t* val = ahtable_tryget ( node.b, NULL, 0 );
+        value_t* val = htr_table_tryget ( node.b, NULL, 0 );
         if ( val ) {
             parent.t->xs[node.b->c0].t->val     = *val;
             parent.t->xs[node.b->c0].t->flag |= NODE_HAS_VAL;
             *val = 0;
-            ahtable_del ( node.b, NULL, 0 );
+            htr_table_del ( node.b, NULL, 0 );
         }
 
         node.b->c0   = 0x00;
@@ -212,19 +212,19 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
     size_t len;
     const char* key;
 
-    ahtable_iter_t* i = ahtable_iter_begin ( node.b, false );
-    while ( !ahtable_iter_finished ( i ) ) {
-        key = ahtable_iter_key ( i, &len );
+    htr_table_iter * i = htr_table_iter_begin ( node.b, false );
+    while ( !htr_table_iter_finished ( i ) ) {
+        key = htr_table_iter_key ( i, &len );
         assert ( len > 0 );
         cs[ ( unsigned char ) key[0]] += 1;
-        ahtable_iter_next ( i );
+        htr_table_iter_next ( i );
     }
-    ahtable_iter_free ( i );
+    htr_table_iter_free ( i );
 
     /* choose a split point */
     unsigned int left_m, right_m, all_m;
     unsigned char j = node.b->c0;
-    all_m   = ahtable_size ( node.b );
+    all_m   = htr_table_size ( node.b );
     left_m  = cs[j];
     right_m = all_m - left_m;
     int d;
@@ -250,23 +250,23 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
     size_t num_slots;
 
 
-    for ( num_slots = ahtable_initial_size;
-            ( double ) left_m > ahtable_max_load_factor * ( double ) num_slots;
+    for ( num_slots = htr_table_initial_size;
+            ( double ) left_m > htr_table_max_load_factor * ( double ) num_slots;
             num_slots *= 2 );
 
     node_ptr left, right;
-    left.b  = ahtable_create_n ( num_slots );
+    left.b  = htr_table_create_n ( num_slots );
     left.b->c0   = node.b->c0;
     left.b->c1   = j;
     left.b->flag = left.b->c0 == left.b->c1 ?
                    NODE_TYPE_PURE_BUCKET : NODE_TYPE_HYBRID_BUCKET;
 
 
-    for ( num_slots = ahtable_initial_size;
-            ( double ) right_m > ahtable_max_load_factor * ( double ) num_slots;
+    for ( num_slots = htr_table_initial_size;
+            ( double ) right_m > htr_table_max_load_factor * ( double ) num_slots;
             num_slots *= 2 );
 
-    right.b = ahtable_create_n ( num_slots );
+    right.b = htr_table_create_n ( num_slots );
     right.b->c0   = j + 1;
     right.b->c1   = node.b->c1;
     right.b->flag = right.b->c0 == right.b->c1 ?
@@ -284,18 +284,18 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
     /* distribute keys to the new left or right node */
     value_t* u;
     value_t* v;
-    i = ahtable_iter_begin ( node.b, false );
-    while ( !ahtable_iter_finished ( i ) ) {
-        key = ahtable_iter_key ( i, &len );
-        u   = ahtable_iter_val ( i );
+    i = htr_table_iter_begin ( node.b, false );
+    while ( !htr_table_iter_finished ( i ) ) {
+        key = htr_table_iter_key ( i, &len );
+        u   = htr_table_iter_val ( i );
         assert ( len > 0 );
 
         /* left */
         if ( ( unsigned char ) key[0] <= j ) {
             if ( *left.flag & NODE_TYPE_PURE_BUCKET ) {
-                v = ahtable_get ( left.b, key + 1, len - 1 );
+                v = htr_table_get ( left.b, key + 1, len - 1 );
             } else {
-                v = ahtable_get ( left.b, key, len );
+                v = htr_table_get ( left.b, key, len );
             }
             *v = *u;
         }
@@ -303,18 +303,18 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
         /* right */
         else {
             if ( *right.flag & NODE_TYPE_PURE_BUCKET ) {
-                v = ahtable_get ( right.b, key + 1, len - 1 );
+                v = htr_table_get ( right.b, key + 1, len - 1 );
             } else {
-                v = ahtable_get ( right.b, key, len );
+                v = htr_table_get ( right.b, key, len );
             }
             *v = *u;
         }
 
-        ahtable_iter_next ( i );
+        htr_table_iter_next ( i );
     }
 
-    ahtable_iter_free ( i );
-    ahtable_free ( node.b );
+    htr_table_iter_free ( i );
+    htr_table_free ( node.b );
 }
 
 value_t* hattrie_get ( hattrie_t* T, const char* key, size_t len )
@@ -339,7 +339,7 @@ value_t* hattrie_get ( hattrie_t* T, const char* key, size_t len )
 
 
     /* preemptively split the bucket if it is full */
-    while ( ahtable_size ( node.b ) >= MAX_BUCKET_SIZE ) {
+    while ( htr_table_size ( node.b ) >= MAX_BUCKET_SIZE ) {
         hattrie_split ( T, parent, node );
 
         /* after the split, the node pointer is invalidated, so we search from
@@ -362,9 +362,9 @@ value_t* hattrie_get ( hattrie_t* T, const char* key, size_t len )
     size_t m_old = node.b->m;
     value_t* val;
     if ( *node.flag & NODE_TYPE_PURE_BUCKET ) {
-        val = ahtable_get ( node.b, key + 1, len - 1 );
+        val = htr_table_get ( node.b, key + 1, len - 1 );
     } else {
-        val = ahtable_get ( node.b, key, len );
+        val = htr_table_get ( node.b, key, len );
     }
     T->m += ( node.b->m - m_old );
 
@@ -385,7 +385,7 @@ value_t* hattrie_tryget ( hattrie_t* T, const char* key, size_t len )
         return &node.t->val;
     }
 
-    return ahtable_tryget ( node.b, key, len );
+    return htr_table_tryget ( node.b, key, len );
 }
 
 
@@ -406,9 +406,9 @@ int hattrie_del ( hattrie_t* T, const char* key, size_t len )
     }
 
     /* remove from bucket */
-    size_t m_old = ahtable_size ( node.b );
-    int ret =  ahtable_del ( node.b, key, len );
-    T->m -= ( m_old - ahtable_size ( node.b ) );
+    size_t m_old = htr_table_size ( node.b );
+    int ret =  htr_table_del ( node.b, key, len );
+    T->m -= ( m_old - htr_table_size ( node.b ) );
 
     /* merge empty buckets */
     /*! \todo */
@@ -444,7 +444,7 @@ struct hattrie_iter_t_ {
 
     const hattrie_t* T;
     bool sorted;
-    ahtable_iter_t* i;
+    htr_table_iter * i;
     hattrie_node_stack_t* stack;
 };
 
@@ -512,7 +512,7 @@ static void hattrie_iter_nextnode ( hattrie_iter_t* i )
             i->level = level - 1;
         }
 
-        i->i = ahtable_iter_begin ( node.b, i->sorted );
+        i->i = htr_table_iter_begin ( node.b, i->sorted );
     }
 }
 
@@ -536,16 +536,16 @@ hattrie_iter_t* hattrie_iter_begin ( const hattrie_t* T, bool sorted )
     i->stack->level  = 0;
 
 
-    while ( ( ( i->i == NULL || ahtable_iter_finished ( i->i ) ) && !i->has_nil_key ) &&
+    while ( ( ( i->i == NULL || htr_table_iter_finished ( i->i ) ) && !i->has_nil_key ) &&
             i->stack != NULL ) {
 
-        ahtable_iter_free ( i->i );
+        htr_table_iter_free ( i->i );
         i->i = NULL;
         hattrie_iter_nextnode ( i );
     }
 
-    if ( i->i != NULL && ahtable_iter_finished ( i->i ) ) {
-        ahtable_iter_free ( i->i );
+    if ( i->i != NULL && htr_table_iter_finished ( i->i ) ) {
+        htr_table_iter_free ( i->i );
         i->i = NULL;
     }
 
@@ -557,24 +557,24 @@ void hattrie_iter_next ( hattrie_iter_t* i )
 {
     if ( hattrie_iter_finished ( i ) ) return;
 
-    if ( i->i != NULL && !ahtable_iter_finished ( i->i ) ) {
-        ahtable_iter_next ( i->i );
+    if ( i->i != NULL && !htr_table_iter_finished ( i->i ) ) {
+        htr_table_iter_next ( i->i );
     } else if ( i->has_nil_key ) {
         i->has_nil_key = false;
         i->nil_val = 0;
         hattrie_iter_nextnode ( i );
     }
 
-    while ( ( ( i->i == NULL || ahtable_iter_finished ( i->i ) ) && !i->has_nil_key ) &&
+    while ( ( ( i->i == NULL || htr_table_iter_finished ( i->i ) ) && !i->has_nil_key ) &&
             i->stack != NULL ) {
 
-        ahtable_iter_free ( i->i );
+        htr_table_iter_free ( i->i );
         i->i = NULL;
         hattrie_iter_nextnode ( i );
     }
 
-    if ( i->i != NULL && ahtable_iter_finished ( i->i ) ) {
-        ahtable_iter_free ( i->i );
+    if ( i->i != NULL && htr_table_iter_finished ( i->i ) ) {
+        htr_table_iter_free ( i->i );
         i->i = NULL;
     }
 }
@@ -589,7 +589,7 @@ bool hattrie_iter_finished ( hattrie_iter_t* i )
 void hattrie_iter_free ( hattrie_iter_t* i )
 {
     if ( i == NULL ) return;
-    if ( i->i ) ahtable_iter_free ( i->i );
+    if ( i->i ) htr_table_iter_free ( i->i );
 
     hattrie_node_stack_t* next;
     while ( i->stack ) {
@@ -613,7 +613,7 @@ const char* hattrie_iter_key ( hattrie_iter_t* i, size_t* len )
     if ( i->has_nil_key ) {
         subkey = NULL;
         sublen = 0;
-    } else subkey = ahtable_iter_key ( i->i, &sublen );
+    } else subkey = htr_table_iter_key ( i->i, &sublen );
 
     if ( i->keysize < i->level + sublen + 1 ) {
         while ( i->keysize < i->level + sublen + 1 ) i->keysize *= 2;
@@ -634,7 +634,7 @@ value_t* hattrie_iter_val ( hattrie_iter_t* i )
 
     if ( hattrie_iter_finished ( i ) ) return NULL;
 
-    return ahtable_iter_val ( i->i );
+    return htr_table_iter_val ( i->i );
 }
 
 

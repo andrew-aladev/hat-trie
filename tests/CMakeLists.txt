@@ -1,13 +1,13 @@
-set (AHTABLE     ahtable.c str_map.c)
+set (TABLE       table.c str_map.c)
 set (HATTRIE     hattrie.c str_map.c)
 set (SORTED_ITER sorted_iter.c)
 
 if (HTR_SHARED MATCHES true)
-    add_executable (${HTR_TARGET}-ahtable ${AHTABLE})
-    target_link_libraries (${HTR_TARGET}-ahtable ${HTR_TARGET})
-    add_test (${HTR_TARGET}-ahtable ${HTR_TARGET}-ahtable)
+    add_executable (${HTR_TARGET}-table ${TABLE})
+    target_link_libraries (${HTR_TARGET}-table ${HTR_TARGET})
+    add_test (${HTR_TARGET}-table ${HTR_TARGET}-table)
     
-    add_executable (${HTR_TARGET}-hattrie ${AHTABLE})
+    add_executable (${HTR_TARGET}-hattrie ${HATTRIE})
     target_link_libraries (${HTR_TARGET}-hattrie ${HTR_TARGET})
     add_test (${HTR_TARGET}-hattrie ${HTR_TARGET}-hattrie)
     
@@ -17,9 +17,9 @@ if (HTR_SHARED MATCHES true)
 endif ()
 
 if (HTR_STATIC MATCHES true)
-    add_executable (${HTR_TARGET}-static-ahtable ${AHTABLE})
-    target_link_libraries (${HTR_TARGET}-static-ahtable ${HTR_TARGET}_static)
-    add_test (${HTR_TARGET}-static-ahtable ${HTR_TARGET}-static-ahtable)
+    add_executable (${HTR_TARGET}-static-table ${TABLE})
+    target_link_libraries (${HTR_TARGET}-static-table ${HTR_TARGET}_static)
+    add_test (${HTR_TARGET}-static-table ${HTR_TARGET}-static-table)
     
     add_executable (${HTR_TARGET}-static-hattrie ${HATTRIE})
     target_link_libraries (${HTR_TARGET}-static-hattrie ${HTR_TARGET}_static)

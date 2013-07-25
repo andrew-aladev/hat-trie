@@ -1,10 +1,9 @@
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
 #include "str_map.h"
-#include <hat-trie/ahtable.h>
+#include <hat-trie/table.h>
 
 /* Simple random string generation. */
 void randstr ( char* x, size_t len )
@@ -22,7 +21,7 @@ const size_t m_high = 500; // maximum length of each string
 const size_t k = 200000;  // number of insertions
 char** xs;
 
-ahtable_t* T;
+htr_table * T;
 str_map* M;
 
 
@@ -38,7 +37,7 @@ void setup()
         randstr ( xs[i], m );
     }
 
-    T = ahtable_create();
+    T = htr_table_create();
     M = str_map_create();
     fprintf ( stderr, "done.\n" );
 }
@@ -46,7 +45,7 @@ void setup()
 
 void teardown()
 {
-    ahtable_free ( T );
+    htr_table_free ( T );
     str_map_destroy ( M );
 
     size_t i;
@@ -57,7 +56,7 @@ void teardown()
 }
 
 
-void test_ahtable_insert()
+void test_htr_table_insert()
 {
     fprintf ( stderr, "inserting %zu keys ... \n", k );
 
@@ -73,7 +72,7 @@ void test_ahtable_insert()
         str_map_set ( M, xs[i], strlen ( xs[i] ), v );
 
 
-        u = ahtable_get ( T, xs[i], strlen ( xs[i] ) );
+        u = htr_table_get ( T, xs[i], strlen ( xs[i] ) );
         *u += 1;
 
 
@@ -86,11 +85,11 @@ void test_ahtable_insert()
     /* delete some keys */
     for ( j = 0; i < k / 100; ++j ) {
         i = rand() % n;
-        ahtable_del ( T, xs[i], strlen ( xs[i] ) );
+        htr_table_del ( T, xs[i], strlen ( xs[i] ) );
         str_map_del ( M, xs[i], strlen ( xs[i] ) );
-        u = ahtable_tryget ( T, xs[i], strlen ( xs[i] ) );
+        u = htr_table_tryget ( T, xs[i], strlen ( xs[i] ) );
         if ( u ) {
-            fprintf ( stderr, "[error] deleted node found in ahtable\n" );
+            fprintf ( stderr, "[error] deleted node found in htr_table\n" );
         }
     }
 
@@ -98,11 +97,11 @@ void test_ahtable_insert()
 }
 
 
-void test_ahtable_iteration()
+void test_htr_table_iteration()
 {
     fprintf ( stderr, "iterating through %zu keys ... \n", k );
 
-    ahtable_iter_t* i = ahtable_iter_begin ( T, false );
+    htr_table_iter * i = htr_table_iter_begin ( T, false );
 
     size_t count = 0;
     value_t* u;
@@ -111,11 +110,11 @@ void test_ahtable_iteration()
     size_t len;
     const char* key;
 
-    while ( !ahtable_iter_finished ( i ) ) {
+    while ( !htr_table_iter_finished ( i ) ) {
         ++count;
 
-        key = ahtable_iter_key ( i, &len );
-        u   = ahtable_iter_val ( i );
+        key = htr_table_iter_key ( i, &len );
+        u   = htr_table_iter_val ( i );
         v   = str_map_get ( M, key, len );
 
         if ( *u != v ) {
@@ -130,7 +129,7 @@ void test_ahtable_iteration()
         // twice
         str_map_set ( M, key, len, 0 );
 
-        ahtable_iter_next ( i );
+        htr_table_iter_next ( i );
     }
 
     if ( count != M->m ) {
@@ -138,7 +137,7 @@ void test_ahtable_iteration()
                   count, M->m );
     }
 
-    ahtable_iter_free ( i );
+    htr_table_iter_free ( i );
 
     fprintf ( stderr, "done.\n" );
 }
@@ -151,11 +150,11 @@ int cmpkey ( const char* a, size_t ka, const char* b, size_t kb )
 }
 
 
-void test_ahtable_sorted_iteration()
+void test_htr_table_sorted_iteration()
 {
     fprintf ( stderr, "iterating in order through %zu keys ... \n", k );
 
-    ahtable_iter_t* i = ahtable_iter_begin ( T, true );
+    htr_table_iter * i = htr_table_iter_begin ( T, true );
 
     size_t count = 0;
     value_t* u;
@@ -167,17 +166,17 @@ void test_ahtable_sorted_iteration()
     const char *key = NULL;
     size_t len = 0;
 
-    while ( !ahtable_iter_finished ( i ) ) {
+    while ( !htr_table_iter_finished ( i ) ) {
         memcpy ( prev_key, key, len );
         prev_len = len;
         ++count;
 
-        key = ahtable_iter_key ( i, &len );
+        key = htr_table_iter_key ( i, &len );
         if ( prev_key != NULL && cmpkey ( prev_key, prev_len, key, len ) > 0 ) {
             fprintf ( stderr, "[error] iteration is not correctly ordered.\n" );
         }
 
-        u  = ahtable_iter_val ( i );
+        u  = htr_table_iter_val ( i );
         v  = str_map_get ( M, key, len );
 
         if ( *u != v ) {
@@ -192,10 +191,10 @@ void test_ahtable_sorted_iteration()
         // twice
         str_map_set ( M, key, len, 0 );
 
-        ahtable_iter_next ( i );
+        htr_table_iter_next ( i );
     }
 
-    ahtable_iter_free ( i );
+    htr_table_iter_free ( i );
     free ( prev_key );
 
     fprintf ( stderr, "done.\n" );
@@ -205,13 +204,13 @@ void test_ahtable_sorted_iteration()
 int main()
 {
     setup();
-    test_ahtable_insert();
-    test_ahtable_iteration();
+    test_htr_table_insert();
+    test_htr_table_iteration();
     teardown();
 
     setup();
-    test_ahtable_insert();
-    test_ahtable_sorted_iteration();
+    test_htr_table_insert();
+    test_htr_table_sorted_iteration();
     teardown();
 
     return 0;
