@@ -7,7 +7,6 @@
 
 #include "hat-trie.h"
 #include "ahtable.h"
-#include "pstdint.h"
 #include <assert.h>
 #include <string.h>
 
