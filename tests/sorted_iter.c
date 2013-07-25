@@ -1,7 +1,7 @@
 
 /* A quick test of the degree to which ordered iteration is slower than unordered. */
 
-#include "../src/hat-trie.h"
+#include <hat-trie/hat-trie.h>
 #include <stdio.h>
 #include <time.h>
 
