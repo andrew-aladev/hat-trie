@@ -17,7 +17,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "common.h"
+#include <hat-trie/common.h>
 
 
 typedef struct str_map_pair_
