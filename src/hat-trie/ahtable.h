@@ -1,27 +1,15 @@
-/*
- * This file is part of hat-trie.
- *
- * Copyright (c) 2011 by Daniel C. Jones <dcjones@cs.washington.edu>
- *
- *
- * This is an implementation of the 'cache-conscious' hash tables described in,
- *
- *    Askitis, N., & Zobel, J. (2005). Cache-conscious collision resolution in
- *    string hash tables. String Processing and Information Retrieval (pp.
- *    91–102). Springer.
- *
- * Briefly, the idea is, as opposed to separate chaining with linked lists, to
- * store keys contiguously in one big array, thereby improving the caching
- * behavior, and reducing space requirments.
- *
- */
+// This file is part of hat-trie.
+// Copyright (c) 2011 by Daniel C. Jones <dcjones@cs.washington.edu>
+//
+// This is an implementation of the 'cache-conscious' hash tables described in, Askitis, N., & Zobel, J. (2005).
+// Cache-conscious collision resolution in string hash tables.
+// String Processing and Information Retrieval (pp. 91–102). Springer.
+//
+// Briefly, the idea is, as opposed to separate chaining with linked lists, to store keys contiguously in one big array,
+// thereby improving the caching behavior, and reducing space requirments.
 
-#ifndef HATTRIE_AHTABLE_H
-#define HATTRIE_AHTABLE_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef HTR_AHTABLE_H
+#define HTR_AHTABLE_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -83,10 +71,4 @@ void            ahtable_iter_free      ( ahtable_iter_t* );
 const char*     ahtable_iter_key       ( ahtable_iter_t*, size_t* len );
 value_t*        ahtable_iter_val       ( ahtable_iter_t* );
 
-
-#ifdef __cplusplus
-}
 #endif
-
-#endif
-

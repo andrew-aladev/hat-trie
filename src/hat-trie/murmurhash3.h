@@ -1,4 +1,3 @@
-
 #ifndef MURMURHASH3_H
 #define MURMURHASH3_H
 
