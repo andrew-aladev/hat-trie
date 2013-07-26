@@ -8,7 +8,6 @@
 
 
 #include "str_map.h"
-#include <hat-trie/misc.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -35,38 +34,42 @@ static const double MAX_LOAD = 0.77;
         +(uint32_t)(((const uint8_t *)(d))[0]) )
 #endif
 
-static uint32_t hash(const char * data, size_t len) {
+static uint32_t hash ( const char * data, size_t len )
+{
     uint32_t hash = len, tmp;
     int rem;
 
-    if (len <= 0 || data == NULL) return 0;
+    if ( len <= 0 || data == NULL ) return 0;
 
     rem = len & 3;
     len >>= 2;
 
     /* Main loop */
-    for (;len > 0; len--) {
-        hash  += get16bits (data);
-        tmp    = (get16bits (data+2) << 11) ^ hash;
-        hash   = (hash << 16) ^ tmp;
-        data  += 2*sizeof (uint16_t);
+    for ( ; len > 0; len-- ) {
+        hash  += get16bits ( data );
+        tmp    = ( get16bits ( data + 2 ) << 11 ) ^ hash;
+        hash   = ( hash << 16 ) ^ tmp;
+        data  += 2 * sizeof ( uint16_t );
         hash  += hash >> 11;
     }
 
     /* Handle end cases */
-    switch (rem) {
-        case 3: hash += get16bits (data);
-                hash ^= hash << 16;
-                hash ^= data[sizeof (uint16_t)] << 18;
-                hash += hash >> 11;
-                break;
-        case 2: hash += get16bits (data);
-                hash ^= hash << 11;
-                hash += hash >> 17;
-                break;
-        case 1: hash += *data;
-                hash ^= hash << 10;
-                hash += hash >> 1;
+    switch ( rem ) {
+    case 3:
+        hash += get16bits ( data );
+        hash ^= hash << 16;
+        hash ^= data[sizeof ( uint16_t )] << 18;
+        hash += hash >> 11;
+        break;
+    case 2:
+        hash += get16bits ( data );
+        hash ^= hash << 11;
+        hash += hash >> 17;
+        break;
+    case 1:
+        hash += *data;
+        hash ^= hash << 10;
+        hash += hash >> 1;
     }
 
     /* Force "avalanching" of final 127 bits */
@@ -82,16 +85,16 @@ static uint32_t hash(const char * data, size_t len) {
 
 
 
-static void rehash(str_map* T, size_t new_n);
-static void clear(str_map*);
+static void rehash ( str_map* T, size_t new_n );
+static void clear ( str_map* );
 
 
 
 str_map* str_map_create()
 {
-    str_map* T = malloc_or_die(sizeof(str_map));
-    T->A = malloc_or_die(INITIAL_TABLE_SIZE * sizeof(str_map_pair*));
-    memset(T->A, 0, INITIAL_TABLE_SIZE * sizeof(str_map_pair*));
+    str_map* T = malloc ( sizeof ( str_map ) );
+    T->A = malloc ( INITIAL_TABLE_SIZE * sizeof ( str_map_pair* ) );
+    memset ( T->A, 0, INITIAL_TABLE_SIZE * sizeof ( str_map_pair* ) );
     T->n = INITIAL_TABLE_SIZE;
     T->m = 0;
     T->max_m = T->n * MAX_LOAD;
@@ -100,26 +103,26 @@ str_map* str_map_create()
 }
 
 
-void str_map_destroy(str_map* T)
+void str_map_destroy ( str_map* T )
 {
-    if (T != NULL) {
-        clear(T);
-        free(T->A);
-        free(T);
+    if ( T != NULL ) {
+        clear ( T );
+        free ( T->A );
+        free ( T );
     }
 }
 
 
 
-void clear(str_map* T)
+void clear ( str_map* T )
 {
     str_map_pair* u;
     size_t i;
-    for (i = 0; i < T->n; i++) {
-        while (T->A[i]) {
+    for ( i = 0; i < T->n; i++ ) {
+        while ( T->A[i] ) {
             u = T->A[i]->next;
-            free(T->A[i]->key);
-            free(T->A[i]);
+            free ( T->A[i]->key );
+            free ( T->A[i] );
             T->A[i] = u;
         }
     }
@@ -128,9 +131,9 @@ void clear(str_map* T)
 }
 
 
-static void insert_without_copy(str_map* T, str_map_pair* V)
+static void insert_without_copy ( str_map* T, str_map_pair* V )
 {
-    uint32_t h = hash(V->key, V->keylen) % T->n;
+    uint32_t h = hash ( V->key, V->keylen ) % T->n;
     V->next = T->A[h];
     T->A[h] = V;
     T->m++;
@@ -138,44 +141,44 @@ static void insert_without_copy(str_map* T, str_map_pair* V)
 
 
 
-static void rehash(str_map* T, size_t new_n)
+static void rehash ( str_map* T, size_t new_n )
 {
     str_map U;
     U.n = new_n;
     U.m = 0;
     U.max_m = U.n * MAX_LOAD;
-    U.A = malloc_or_die(U.n * sizeof(str_map_pair*));
-    memset(U.A, 0, U.n * sizeof(str_map_pair*));
+    U.A = malloc ( U.n * sizeof ( str_map_pair* ) );
+    memset ( U.A, 0, U.n * sizeof ( str_map_pair* ) );
 
     str_map_pair *j, *k;
     size_t i;
-    for (i = 0; i < T->n; i++) {
+    for ( i = 0; i < T->n; i++ ) {
         j = T->A[i];
-        while (j) {
+        while ( j ) {
             k = j->next;
-            insert_without_copy(&U, j);
+            insert_without_copy ( &U, j );
             j = k;
         }
         T->A[i] = NULL;
     }
 
-    free(T->A);
+    free ( T->A );
     T->A = U.A;
     T->n = U.n;
     T->max_m = U.max_m;
 }
 
 
-void str_map_set(str_map* T, const char* key, size_t keylen, value_t value)
+void str_map_set ( str_map* T, const char* key, size_t keylen, value_t value )
 {
-    if (T->m >= T->max_m) rehash(T, T->n * 2);
+    if ( T->m >= T->max_m ) rehash ( T, T->n * 2 );
 
-    uint32_t h = hash(key, keylen) % T->n;
+    uint32_t h = hash ( key, keylen ) % T->n;
 
     str_map_pair* u = T->A[h];
 
-    while (u) {
-        if (u->keylen == keylen && memcmp(u->key, key, keylen) == 0) {
+    while ( u ) {
+        if ( u->keylen == keylen && memcmp ( u->key, key, keylen ) == 0 ) {
             u->value = value;
             return;
         }
@@ -183,9 +186,9 @@ void str_map_set(str_map* T, const char* key, size_t keylen, value_t value)
         u = u->next;
     }
 
-    u = malloc_or_die(sizeof(str_map_pair));
-    u->key = malloc_or_die(keylen);
-    memcpy(u->key, key, keylen);
+    u = malloc ( sizeof ( str_map_pair ) );
+    u->key = malloc ( keylen );
+    memcpy ( u->key, key, keylen );
     u->keylen = keylen;
     u->value  = value;
 
@@ -196,14 +199,14 @@ void str_map_set(str_map* T, const char* key, size_t keylen, value_t value)
 }
 
 
-value_t str_map_get(const str_map* T, const char* key, size_t keylen)
+value_t str_map_get ( const str_map* T, const char* key, size_t keylen )
 {
-    uint32_t h = hash(key, keylen) % T->n;
+    uint32_t h = hash ( key, keylen ) % T->n;
 
     str_map_pair* u = T->A[h];
 
-    while (u) {
-        if (u->keylen == keylen && memcmp(u->key, key, keylen) == 0) {
+    while ( u ) {
+        if ( u->keylen == keylen && memcmp ( u->key, key, keylen ) == 0 ) {
             return u->value;
         }
 
@@ -213,22 +216,22 @@ value_t str_map_get(const str_map* T, const char* key, size_t keylen)
     return 0;
 }
 
-void str_map_del(str_map* T, const char* key, size_t keylen)
+void str_map_del ( str_map* T, const char* key, size_t keylen )
 {
-    uint32_t h = hash(key, keylen) % T->n;
+    uint32_t h = hash ( key, keylen ) % T->n;
 
     str_map_pair* u = T->A[h];
     str_map_pair* p = NULL;
-    while (u) {
-        
-        if (u->keylen == keylen && memcmp(u->key, key, keylen) == 0) {
-            if (p) {
+    while ( u ) {
+
+        if ( u->keylen == keylen && memcmp ( u->key, key, keylen ) == 0 ) {
+            if ( p ) {
                 p->next = u->next;
             } else {
                 T->A[h] = u->next;
             }
-            free(u->key);
-            free(u);
+            free ( u->key );
+            free ( u );
             --T->m;
             return;
         }

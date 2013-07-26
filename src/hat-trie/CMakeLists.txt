@@ -1,5 +1,5 @@
-set (INCLUDES ahtable.h common.h hat-trie.h misc.h murmurhash3.h pstdint.h)
-set (SOURCES  ahtable.c hat-trie.c misc.c murmurhash3.c)
+set (INCLUDES table.h common.h hat-trie.h murmurhash3.h pstdint.h)
+set (SOURCES  table.c hat-trie.c murmurhash3.c)
 
 if (HTR_SHARED MATCHES true)
     add_library (${HTR_TARGET} SHARED ${SOURCES})

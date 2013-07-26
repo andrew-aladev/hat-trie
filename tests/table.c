@@ -1,10 +1,9 @@
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
 #include "str_map.h"
-#include <hat-trie/hat-trie.h>
+#include <hat-trie/table.h>
 
 /* Simple random string generation. */
 void randstr ( char* x, size_t len )
@@ -15,16 +14,14 @@ void randstr ( char* x, size_t len )
     }
 }
 
+
 const size_t n = 100000;  // how many unique strings
 const size_t m_low  = 50;  // minimum length of each string
 const size_t m_high = 500; // maximum length of each string
 const size_t k = 200000;  // number of insertions
-const size_t d = 50000;
-
 char** xs;
-char** ds;
 
-hattrie_t* T;
+htr_table * T;
 str_map* M;
 
 
@@ -32,7 +29,6 @@ void setup()
 {
     fprintf ( stderr, "generating %zu keys ... ", n );
     xs = malloc ( n * sizeof ( char* ) );
-    ds = malloc ( d * sizeof ( char* ) );
     size_t i;
     size_t m;
     for ( i = 0; i < n; ++i ) {
@@ -40,12 +36,8 @@ void setup()
         xs[i] = malloc ( m + 1 );
         randstr ( xs[i], m );
     }
-    for ( i = 0; i < d; ++i ) {
-        m = rand() % n;
-        ds[i] = xs[m];
-    }
 
-    T = hattrie_create();
+    T = htr_table_create();
     M = str_map_create();
     fprintf ( stderr, "done.\n" );
 }
@@ -53,7 +45,7 @@ void setup()
 
 void teardown()
 {
-    hattrie_free ( T );
+    htr_table_free ( T );
     str_map_destroy ( M );
 
     size_t i;
@@ -61,11 +53,10 @@ void teardown()
         free ( xs[i] );
     }
     free ( xs );
-    free ( ds );
 }
 
 
-void test_hattrie_insert()
+void test_htr_table_insert()
 {
     fprintf ( stderr, "inserting %zu keys ... \n", k );
 
@@ -81,7 +72,7 @@ void test_hattrie_insert()
         str_map_set ( M, xs[i], strlen ( xs[i] ), v );
 
 
-        u = hattrie_get ( T, xs[i], strlen ( xs[i] ) );
+        u = htr_table_get ( T, xs[i], strlen ( xs[i] ) );
         *u += 1;
 
 
@@ -91,14 +82,14 @@ void test_hattrie_insert()
         }
     }
 
-    fprintf ( stderr, "deleting %zu keys ... \n", d );
-    for ( j = 0; j < d; ++j ) {
-        str_map_del ( M, ds[j], strlen ( ds[j] ) );
-        hattrie_del ( T, ds[j], strlen ( ds[j] ) );
-        u = hattrie_tryget ( T, ds[j], strlen ( ds[j] ) );
+    /* delete some keys */
+    for ( j = 0; i < k / 100; ++j ) {
+        i = rand() % n;
+        htr_table_del ( T, xs[i], strlen ( xs[i] ) );
+        str_map_del ( M, xs[i], strlen ( xs[i] ) );
+        u = htr_table_tryget ( T, xs[i], strlen ( xs[i] ) );
         if ( u ) {
-            fprintf ( stderr, "[error] item %zu still found in trie after delete\n",
-                      j );
+            fprintf ( stderr, "[error] deleted node found in htr_table\n" );
         }
     }
 
@@ -106,12 +97,11 @@ void test_hattrie_insert()
 }
 
 
-
-void test_hattrie_iteration()
+void test_htr_table_iteration()
 {
     fprintf ( stderr, "iterating through %zu keys ... \n", k );
 
-    hattrie_iter_t* i = hattrie_iter_begin ( T, false );
+    htr_table_iter * i = htr_table_iter_begin ( T, false );
 
     size_t count = 0;
     value_t* u;
@@ -120,13 +110,12 @@ void test_hattrie_iteration()
     size_t len;
     const char* key;
 
-    while ( !hattrie_iter_finished ( i ) ) {
+    while ( !htr_table_iter_finished ( i ) ) {
         ++count;
 
-        key = hattrie_iter_key ( i, &len );
-        u   = hattrie_iter_val ( i );
-
-        v = str_map_get ( M, key, len );
+        key = htr_table_iter_key ( i, &len );
+        u   = htr_table_iter_val ( i );
+        v   = str_map_get ( M, key, len );
 
         if ( *u != v ) {
             if ( v == 0 ) {
@@ -140,7 +129,7 @@ void test_hattrie_iteration()
         // twice
         str_map_set ( M, key, len, 0 );
 
-        hattrie_iter_next ( i );
+        htr_table_iter_next ( i );
     }
 
     if ( count != M->m ) {
@@ -148,7 +137,7 @@ void test_hattrie_iteration()
                   count, M->m );
     }
 
-    hattrie_iter_free ( i );
+    htr_table_iter_free ( i );
 
     fprintf ( stderr, "done.\n" );
 }
@@ -161,41 +150,34 @@ int cmpkey ( const char* a, size_t ka, const char* b, size_t kb )
 }
 
 
-void test_hattrie_sorted_iteration()
+void test_htr_table_sorted_iteration()
 {
     fprintf ( stderr, "iterating in order through %zu keys ... \n", k );
 
-    hattrie_iter_t* i = hattrie_iter_begin ( T, true );
+    htr_table_iter * i = htr_table_iter_begin ( T, true );
 
     size_t count = 0;
     value_t* u;
     value_t  v;
 
-    char* key_copy = malloc ( m_high + 1 );
     char* prev_key = malloc ( m_high + 1 );
-    memset ( prev_key, 0, m_high + 1 );
     size_t prev_len = 0;
 
     const char *key = NULL;
     size_t len = 0;
 
-    while ( !hattrie_iter_finished ( i ) ) {
-        memcpy ( prev_key, key_copy, len );
-        prev_key[len] = '\0';
+    while ( !htr_table_iter_finished ( i ) ) {
+        memcpy ( prev_key, key, len );
         prev_len = len;
         ++count;
 
-        key = hattrie_iter_key ( i, &len );
-
-        /* memory for key may be changed on iter, copy it */
-        strncpy ( key_copy, key, len );
-
+        key = htr_table_iter_key ( i, &len );
         if ( prev_key != NULL && cmpkey ( prev_key, prev_len, key, len ) > 0 ) {
             fprintf ( stderr, "[error] iteration is not correctly ordered.\n" );
         }
 
-        u = hattrie_iter_val ( i );
-        v = str_map_get ( M, key, len );
+        u  = htr_table_iter_val ( i );
+        v  = str_map_get ( M, key, len );
 
         if ( *u != v ) {
             if ( v == 0 ) {
@@ -209,63 +191,27 @@ void test_hattrie_sorted_iteration()
         // twice
         str_map_set ( M, key, len, 0 );
 
-        hattrie_iter_next ( i );
+        htr_table_iter_next ( i );
     }
 
-    if ( count != M->m ) {
-        fprintf ( stderr, "[error] iterated through %zu element, expected %zu\n",
-                  count, M->m );
-    }
-
-    hattrie_iter_free ( i );
+    htr_table_iter_free ( i );
     free ( prev_key );
-    free ( key_copy );
 
     fprintf ( stderr, "done.\n" );
 }
-
-
-void test_trie_non_ascii()
-{
-    fprintf ( stderr, "checking non-ascii... \n" );
-
-    value_t* u;
-    hattrie_t* T = hattrie_create();
-    char* txt = "\x81\x70";
-
-    u = hattrie_get ( T, txt, strlen ( txt ) );
-    *u = 10;
-
-    u = hattrie_tryget ( T, txt, strlen ( txt ) );
-    if ( *u != 10 ) {
-        fprintf ( stderr, "can't store non-ascii strings\n" );
-    }
-    hattrie_free ( T );
-
-    fprintf ( stderr, "done.\n" );
-}
-
-
 
 
 int main()
 {
-    test_trie_non_ascii();
-
     setup();
-    test_hattrie_insert();
-    test_hattrie_iteration();
+    test_htr_table_insert();
+    test_htr_table_iteration();
     teardown();
 
     setup();
-    test_hattrie_insert();
-    test_hattrie_sorted_iteration();
+    test_htr_table_insert();
+    test_htr_table_sorted_iteration();
     teardown();
 
     return 0;
 }
-
-
-
-
-

@@ -7,11 +7,11 @@
 
 
 /* Simple random string generation. */
-void randstr(char* x, size_t len)
+void randstr ( char* x, size_t len )
 {
     x[len] = '\0';
-    while (len > 0) {
-        x[--len] = '\x20' + (rand() % ('\x7e' - '\x20' + 1));
+    while ( len > 0 ) {
+        x[--len] = '\x20' + ( rand() % ( '\x7e' - '\x20' + 1 ) );
     }
 }
 
@@ -24,10 +24,10 @@ int main()
     char x[501];
 
     size_t i, m;
-    for (i = 0; i < n; ++i) {
-        m = m_low + rand() % (m_high - m_low);
-        randstr(x, m);
-        *hattrie_get(T, x, m) = 1;
+    for ( i = 0; i < n; ++i ) {
+        m = m_low + rand() % ( m_high - m_low );
+        randstr ( x, m );
+        *hattrie_get ( T, x, m ) = 1;
     }
 
     hattrie_iter_t* it;
@@ -36,34 +36,34 @@ int main()
     size_t r;
 
     /* iterate in unsorted order */
-    fprintf(stderr, "iterating out of order ... ");
+    fprintf ( stderr, "iterating out of order ... " );
     t0 = clock();
-    for (r = 0; r < repetitions; ++r) {
-        it = hattrie_iter_begin(T, false);
-        while (!hattrie_iter_finished(it)) {
-            hattrie_iter_next(it);
+    for ( r = 0; r < repetitions; ++r ) {
+        it = hattrie_iter_begin ( T, false );
+        while ( !hattrie_iter_finished ( it ) ) {
+            hattrie_iter_next ( it );
         }
-        hattrie_iter_free(it);
+        hattrie_iter_free ( it );
     }
     t = clock();
-    fprintf(stderr, "finished. (%0.2f seconds)\n", (double) (t - t0) / (double) CLOCKS_PER_SEC);
+    fprintf ( stderr, "finished. (%0.2f seconds)\n", ( double ) ( t - t0 ) / ( double ) CLOCKS_PER_SEC );
 
 
     /* iterate in sorted order */
-    fprintf(stderr, "iterating in order ... ");
+    fprintf ( stderr, "iterating in order ... " );
     t0 = clock();
-    for (r = 0; r < repetitions; ++r) {
-        it = hattrie_iter_begin(T, true);
-        while (!hattrie_iter_finished(it)) {
-            hattrie_iter_next(it);
+    for ( r = 0; r < repetitions; ++r ) {
+        it = hattrie_iter_begin ( T, true );
+        while ( !hattrie_iter_finished ( it ) ) {
+            hattrie_iter_next ( it );
         }
-        hattrie_iter_free(it);
+        hattrie_iter_free ( it );
     }
     t = clock();
-    fprintf(stderr, "finished. (%0.2f seconds)\n", (double) (t - t0) / (double) CLOCKS_PER_SEC);
+    fprintf ( stderr, "finished. (%0.2f seconds)\n", ( double ) ( t - t0 ) / ( double ) CLOCKS_PER_SEC );
 
 
-    hattrie_free(T);
+    hattrie_free ( T );
 
     return 0;
 }
