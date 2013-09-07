@@ -31,7 +31,7 @@ htr_table * htr_table_create_n ( size_t n )
 
     table->slots_count = n;
     table->pairs_count = 0;
-    table->max_m = ( size_t ) ( htr_table_max_load_factor * ( double ) table->slots_count );
+    table->max_pairs_count = ( size_t ) ( htr_table_max_load_factor * ( double ) table->slots_count );
     htr_slot * slots = malloc ( n * sizeof ( htr_slot ) );
     if ( slots == NULL ) {
         free ( table );
@@ -192,14 +192,14 @@ static void htr_table_expand ( htr_table * T )
     T->slots_sizes = slots_sizes;
 
     T->slots_count = new_n;
-    T->max_m = ( size_t ) ( htr_table_max_load_factor * ( double ) T->slots_count );
+    T->max_pairs_count = ( size_t ) ( htr_table_max_load_factor * ( double ) T->slots_count );
 }
 
 
 static htr_value * get_key ( htr_table * T, const char* key, size_t len, bool insert_missing )
 {
     /* if we are at capacity, preemptively resize */
-    if ( insert_missing && T->pairs_count >= T->max_m ) {
+    if ( insert_missing && T->pairs_count >= T->max_pairs_count ) {
         htr_table_expand ( T );
     }
 

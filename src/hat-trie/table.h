@@ -19,8 +19,8 @@ typedef struct htr_table_t {
     uint8_t c0;
     uint8_t c1;
 
-    size_t pairs_count; // number of key/value pairs stored
-    size_t max_m; // number of stored keys before we resize
+    size_t pairs_count;
+    size_t max_pairs_count; // number of stored pairs before resize
 
     htr_slot * slots;
     size_t *   slots_sizes;
@@ -63,10 +63,10 @@ htr_value * htr_table_tryget ( htr_table * table, const char * key, size_t len )
 int htr_table_del ( htr_table * table, const char * key, size_t len );
 
 htr_table_iterator * htr_table_iter_begin    ( const htr_table *, bool sorted );
-void             htr_table_iter_next     ( htr_table_iterator * );
-bool             htr_table_iter_finished ( htr_table_iterator * );
-void             htr_table_iter_free     ( htr_table_iterator * );
-const char *     htr_table_iter_key      ( htr_table_iterator *, size_t * len );
-htr_value *        htr_table_iter_val      ( htr_table_iterator * );
+void                 htr_table_iter_next     ( htr_table_iterator * );
+bool                 htr_table_iter_finished ( htr_table_iterator * );
+void                 htr_table_iter_free     ( htr_table_iterator * );
+const char *         htr_table_iter_key      ( htr_table_iterator *, size_t * len );
+htr_value *          htr_table_iter_val      ( htr_table_iterator * );
 
 #endif
