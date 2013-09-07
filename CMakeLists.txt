@@ -14,6 +14,10 @@ endif ()
 
 set (CMAKE_BUILD_TYPE DEBUG)
 
+set (TALLOC_TARGET hat-trie_talloc2)
+add_subdirectory (talloc2)
+include_directories ("talloc2/src/")
+
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Winline -std=gnu99")
 set (CMAKE_C_FLAGS_DEBUG    "-O0 -g")
 
