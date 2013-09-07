@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <talloc2/tree.h>
+#include <talloc2/ext/destructor.h>
+
 #define HT_UNUSED(x) x=x
 
 // maximum number of keys that may be stored in a bucket before it is burst
@@ -15,10 +18,10 @@ static const size_t MAX_BUCKET_SIZE = 16384;
 #define NODE_MAXCHAR 0xff // 0x7f for 7-bit ASCII
 #define NODE_CHILDS (NODE_MAXCHAR+1)
 
-static const uint8_t NODE_TYPE_TRIE          = 0x1;
-static const uint8_t NODE_TYPE_PURE_BUCKET   = 0x2;
-static const uint8_t NODE_TYPE_HYBRID_BUCKET = 0x4;
-static const uint8_t NODE_HAS_VAL            = 0x8;
+static const uint8_t NODE_TYPE_TRIE          = 1;
+static const uint8_t NODE_TYPE_PURE_BUCKET   = 1 << 1;
+static const uint8_t NODE_TYPE_HYBRID_BUCKET = 1 << 2;
+static const uint8_t NODE_HAS_VAL            = 1 << 3;
 
 // Node's may be trie nodes or buckets. This union allows us to keep non-specific pointer.
 typedef union htr_node_ptr_t {
@@ -58,46 +61,49 @@ static htr_trie_node * alloc_trie_node ( htr * trie, htr_node_ptr child )
     return node;
 }
 
-/* iterate trie nodes until string is consumed or bucket is found */
-static htr_node_ptr hattrie_consume ( htr_node_ptr *p, const char **k, size_t *l, unsigned brk )
+// iterate trie nodes until string is consumed or bucket is found
+static inline
+htr_node_ptr consume ( htr_node_ptr * p, const char ** k, size_t * l, unsigned brk )
 {
-    htr_node_ptr node = p->trie_node->xs[ ( unsigned char ) **k];
-    while ( *node.flag & NODE_TYPE_TRIE && *l > brk ) {
-        ++*k;
-        --*l;
-        *p   = node;
-        node = node.trie_node->xs[ ( unsigned char ) **k];
+    htr_node_ptr node = p->trie_node->xs[ ( unsigned char ) ** k];
+    while ( * node.flag & NODE_TYPE_TRIE && * l > brk ) {
+        ++ * k;
+        -- * l;
+        * p  = node;
+        node = node.trie_node->xs[ ( unsigned char ) ** k];
     }
 
-    /* copy and writeback variables if it's faster */
+    // copy and writeback variables if it's faster
 
     assert ( *p->flag & NODE_TYPE_TRIE );
     return node;
 }
 
-/* use node value and return pointer to it */
-static inline htr_value * hattrie_useval ( htr *T, htr_node_ptr n )
+// use node value and return pointer to it
+static inline
+htr_value * hattrie_useval ( htr * trie, htr_node_ptr node )
 {
-    if ( ! ( n.trie_node->flag & NODE_HAS_VAL ) ) {
-        n.trie_node->flag |= NODE_HAS_VAL;
-        ++T->pairs_count;
+    if ( ! ( node.trie_node->flag & NODE_HAS_VAL ) ) {
+        node.trie_node->flag |= NODE_HAS_VAL;
+        trie->pairs_count++;
     }
-    return &n.trie_node->value;
+    return &node.trie_node->value;
 }
 
-/* clear node value if exists */
-static inline int hattrie_clrval ( htr *T, htr_node_ptr n )
+// clear node value if exists
+static inline
+int clear_value ( htr * trie, htr_node_ptr node )
 {
-    if ( n.trie_node->flag & NODE_HAS_VAL ) {
-        n.trie_node->flag &= ~NODE_HAS_VAL;
-        n.trie_node->value = 0;
-        --T->pairs_count;
-        return 0;
+    if ( ! ( node.trie_node->flag & NODE_HAS_VAL ) ) {
+        return -1;
     }
-    return -1;
+    node.trie_node->flag &= ~NODE_HAS_VAL;
+    node.trie_node->value = 0;
+    trie->pairs_count--;
+    return 0;
 }
 
-/* find node in trie */
+// find node in trie
 static htr_node_ptr hattrie_find ( htr* T, const char **key, size_t *len )
 {
     htr_node_ptr parent = T->root;
@@ -105,7 +111,7 @@ static htr_node_ptr hattrie_find ( htr* T, const char **key, size_t *len )
 
     if ( *len == 0 ) return parent;
 
-    htr_node_ptr node = hattrie_consume ( &parent, key, len, 1 );
+    htr_node_ptr node = consume ( &parent, key, len, 1 );
 
     /* if the trie node consumes value, use it */
     if ( *node.flag & NODE_TYPE_TRIE ) {
@@ -125,23 +131,8 @@ static htr_node_ptr hattrie_find ( htr* T, const char **key, size_t *len )
     return node;
 }
 
-htr* htr_create()
-{
-    htr* T = malloc ( sizeof ( htr ) );
-    T->pairs_count = 0;
-
-    htr_node_ptr node;
-    node.table = htr_table_create();
-    node.table->flag = NODE_TYPE_HYBRID_BUCKET;
-    node.table->c0 = 0x00;
-    node.table->c1 = NODE_MAXCHAR;
-    T->root.trie_node = alloc_trie_node ( T, node );
-
-    return T;
-}
-
-
-static void hattrie_free_node ( htr_node_ptr node )
+static inline
+void htr_free_node ( htr_node_ptr node )
 {
     if ( *node.flag & NODE_TYPE_TRIE ) {
         size_t i;
@@ -150,7 +141,7 @@ static void hattrie_free_node ( htr_node_ptr node )
 
             /* XXX: recursion might not be the best choice here. It is possible
              * to build a very deep trie. */
-            if ( node.trie_node->xs[i].trie_node ) hattrie_free_node ( node.trie_node->xs[i] );
+            if ( node.trie_node->xs[i].trie_node ) htr_free_node ( node.trie_node->xs[i] );
         }
         free ( node.trie_node );
     } else {
@@ -158,11 +149,34 @@ static void hattrie_free_node ( htr_node_ptr node )
     }
 }
 
-
-void htr_free ( htr* T )
+static
+uint8_t htr_free ( void * child_data, void * user_data )
 {
-    hattrie_free_node ( T->root );
-    free ( T );
+    htr * trie = child_data;
+    htr_free_node ( trie->root );
+    return 0;
+}
+
+htr * htr_new ( void * ctx )
+{
+    htr * trie = talloc ( ctx, sizeof ( htr ) );
+    if ( trie == NULL ) {
+        return NULL;
+    }
+    if ( talloc_add_destructor ( trie, htr_free, NULL ) != 0 ) {
+        talloc_free ( trie );
+        return NULL;
+    }
+    trie->pairs_count = 0;
+
+    htr_node_ptr node;
+    node.table = htr_table_new ();
+    node.table->flag = NODE_TYPE_HYBRID_BUCKET;
+    node.table->c0 = 0x00;
+    node.table->c1 = NODE_MAXCHAR;
+    trie->root.trie_node = alloc_trie_node ( trie, node );
+
+    return trie;
 }
 
 /* Perform one split operation on the given node with the given parent.
@@ -246,22 +260,22 @@ static void hattrie_split ( htr * T, htr_node_ptr parent, htr_node_ptr node )
             num_slots *= 2 );
 
     htr_node_ptr left, right;
-    left.table  = htr_table_create_n ( num_slots );
+    left.table  = htr_table_new_n ( num_slots );
     left.table->c0   = node.table->c0;
     left.table->c1   = j;
     left.table->flag = left.table->c0 == left.table->c1 ?
-                   NODE_TYPE_PURE_BUCKET : NODE_TYPE_HYBRID_BUCKET;
+                       NODE_TYPE_PURE_BUCKET : NODE_TYPE_HYBRID_BUCKET;
 
 
     for ( num_slots = htr_table_initial_size;
             ( double ) right_m > htr_table_max_load_factor * ( double ) num_slots;
             num_slots *= 2 );
 
-    right.table = htr_table_create_n ( num_slots );
+    right.table = htr_table_new_n ( num_slots );
     right.table->c0   = j + 1;
     right.table->c1   = node.table->c1;
     right.table->flag = right.table->c0 == right.table->c1 ?
-                    NODE_TYPE_PURE_BUCKET : NODE_TYPE_HYBRID_BUCKET;
+                        NODE_TYPE_PURE_BUCKET : NODE_TYPE_HYBRID_BUCKET;
 
 
     /* update the parent's pointer */
@@ -316,7 +330,7 @@ htr_value * htr_get ( htr * T, const char* key, size_t len )
     if ( len == 0 ) return &parent.trie_node->value;
 
     /* consume all trie nodes, now parent must be trie and child anything */
-    htr_node_ptr node = hattrie_consume ( &parent, &key, &len, 0 );
+    htr_node_ptr node = consume ( &parent, &key, &len, 0 );
     assert ( *parent.flag & NODE_TYPE_TRIE );
 
     /* if the key has been consumed on a trie node, use its value */
@@ -335,7 +349,7 @@ htr_value * htr_get ( htr * T, const char* key, size_t len )
 
         /* after the split, the node pointer is invalidated, so we search from
          * the parent again. */
-        node = hattrie_consume ( &parent, &key, &len, 0 );
+        node = consume ( &parent, &key, &len, 0 );
 
         /* if the key has been consumed on a trie node, use its value */
         if ( len == 0 ) {
@@ -393,7 +407,7 @@ int htr_del ( htr * T, const char* key, size_t len )
 
     /* if consumed on a trie node, clear the value */
     if ( *node.flag & NODE_TYPE_TRIE ) {
-        return hattrie_clrval ( T, node );
+        return clear_value ( T, node );
     }
 
     /* remove from bucket */

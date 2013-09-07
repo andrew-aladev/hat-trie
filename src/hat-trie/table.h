@@ -31,13 +31,13 @@ extern const double htr_table_max_load_factor;
 extern const size_t htr_table_initial_size;
 
 // Create an empty hash table, with n slots reserved.
-htr_table * htr_table_create_n ( size_t n );
+htr_table * htr_table_new_n ( size_t n );
 
 // Create an empty hash table.
 inline
-htr_table * htr_table_create()
+htr_table * htr_table_new ()
 {
-    return htr_table_create_n ( htr_table_initial_size );
+    return htr_table_new_n ( htr_table_initial_size );
 }
 
 // Free all memory used by a table.

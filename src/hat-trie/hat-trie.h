@@ -15,9 +15,8 @@
 
 typedef struct htr_t htr;
 
-htr * htr_create ();
-void  htr_free   ( htr * trie );
-void  htr_clear  ( htr * trie );
+htr * htr_new   ( void * ctx );
+void  htr_clear ( htr * trie );
 
 // Find the given key in the trie, inserting it if it does not exist, and returning a pointer to it's key.
 // This pointer is not guaranteed to be valid after additional calls to hattrie_get, hattrie_del, hattrie_clear, or other functions that modifies the trie.

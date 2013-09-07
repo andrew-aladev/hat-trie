@@ -20,7 +20,7 @@ size_t keylen ( htr_slot slot )
     }
 }
 
-htr_table * htr_table_create_n ( size_t n )
+htr_table * htr_table_new_n ( size_t n )
 {
     htr_table * table = malloc ( sizeof ( htr_table ) );
     if ( table == NULL ) {
@@ -554,7 +554,7 @@ htr_value * htr_table_iter_val ( htr_table_iterator * i )
 }
 
 extern inline
-htr_table * htr_table_create();
+htr_table * htr_table_new();
 
 extern inline
 size_t htr_table_size ( const htr_table * table );

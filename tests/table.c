@@ -37,7 +37,7 @@ void setup()
         randstr ( xs[i], m );
     }
 
-    T = htr_table_create();
+    T = htr_table_new ();
     M = str_map_create();
     fprintf ( stderr, "done.\n" );
 }

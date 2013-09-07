@@ -2,6 +2,7 @@
 /* A quick test of the degree to which ordered iteration is slower than unordered. */
 
 #include <hat-trie/hat-trie.h>
+#include <talloc2/tree.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -18,7 +19,7 @@ void randstr ( char* x, size_t len )
 
 int main()
 {
-    htr * T = htr_create();
+    htr * T = htr_new ( NULL );
     const size_t n = 1000000;  // how many strings
     const size_t m_low  = 50;  // minimum length of each string
     const size_t m_high = 500; // maximum length of each string
@@ -64,7 +65,7 @@ int main()
     fprintf ( stderr, "finished. (%0.2f seconds)\n", ( double ) ( t - t0 ) / ( double ) CLOCKS_PER_SEC );
 
 
-    htr_free ( T );
+    talloc_free ( T );
 
     return 0;
 }

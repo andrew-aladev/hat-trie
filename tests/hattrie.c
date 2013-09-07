@@ -5,6 +5,7 @@
 
 #include "str_map.h"
 #include <hat-trie/hat-trie.h>
+#include <talloc2/tree.h>
 
 /* Simple random string generation. */
 void randstr ( char* x, size_t len )
@@ -45,7 +46,7 @@ void setup()
         ds[i] = xs[m];
     }
 
-    T = htr_create();
+    T = htr_new ( NULL );
     M = str_map_create();
     fprintf ( stderr, "done.\n" );
 }
@@ -53,7 +54,7 @@ void setup()
 
 void teardown()
 {
-    htr_free ( T );
+    talloc_free ( T );
     str_map_destroy ( M );
 
     size_t i;
@@ -230,7 +231,7 @@ void test_trie_non_ascii()
     fprintf ( stderr, "checking non-ascii... \n" );
 
     htr_value * u;
-    htr * T = htr_create();
+    htr * T = htr_new ( NULL );
     char* txt = "\x81\x70";
 
     u = htr_get ( T, txt, strlen ( txt ) );
@@ -240,7 +241,7 @@ void test_trie_non_ascii()
     if ( *u != 10 ) {
         fprintf ( stderr, "can't store non-ascii strings\n" );
     }
-    htr_free ( T );
+    talloc_free ( T );
 
     fprintf ( stderr, "done.\n" );
 }
