@@ -1,5 +1,6 @@
 // This file is part of hat-trie.
 // Copyright (c) 2011 by Daniel C. Jones <dcjones@cs.washington.edu>
+// Copyright (c) 2013 by Andrew Aladjev <aladjev.andrew@gmail.com>
 
 #ifndef HTR_COMMON_H
 #define HTR_COMMON_H

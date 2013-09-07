@@ -24,7 +24,7 @@ const size_t d = 50000;
 char** xs;
 char** ds;
 
-hattrie_t* T;
+htr * T;
 str_map* M;
 
 
@@ -45,7 +45,7 @@ void setup()
         ds[i] = xs[m];
     }
 
-    T = hattrie_create();
+    T = htr_create();
     M = str_map_create();
     fprintf ( stderr, "done.\n" );
 }
@@ -53,7 +53,7 @@ void setup()
 
 void teardown()
 {
-    hattrie_free ( T );
+    htr_free ( T );
     str_map_destroy ( M );
 
     size_t i;
@@ -81,7 +81,7 @@ void test_hattrie_insert()
         str_map_set ( M, xs[i], strlen ( xs[i] ), v );
 
 
-        u = hattrie_get ( T, xs[i], strlen ( xs[i] ) );
+        u = htr_get ( T, xs[i], strlen ( xs[i] ) );
         *u += 1;
 
 
@@ -94,8 +94,8 @@ void test_hattrie_insert()
     fprintf ( stderr, "deleting %zu keys ... \n", d );
     for ( j = 0; j < d; ++j ) {
         str_map_del ( M, ds[j], strlen ( ds[j] ) );
-        hattrie_del ( T, ds[j], strlen ( ds[j] ) );
-        u = hattrie_tryget ( T, ds[j], strlen ( ds[j] ) );
+        htr_del ( T, ds[j], strlen ( ds[j] ) );
+        u = htr_tryget ( T, ds[j], strlen ( ds[j] ) );
         if ( u ) {
             fprintf ( stderr, "[error] item %zu still found in trie after delete\n",
                       j );
@@ -111,7 +111,7 @@ void test_hattrie_iteration()
 {
     fprintf ( stderr, "iterating through %zu keys ... \n", k );
 
-    hattrie_iter_t* i = hattrie_iter_begin ( T, false );
+    htr_iterator * i = htr_iterator_begin ( T, false );
 
     size_t count = 0;
     htr_value * u;
@@ -120,11 +120,11 @@ void test_hattrie_iteration()
     size_t len;
     const char* key;
 
-    while ( !hattrie_iter_finished ( i ) ) {
+    while ( !htr_iterator_finished ( i ) ) {
         ++count;
 
-        key = hattrie_iter_key ( i, &len );
-        u   = hattrie_iter_val ( i );
+        key = htr_iterator_key ( i, &len );
+        u   = htr_iterator_val ( i );
 
         v = str_map_get ( M, key, len );
 
@@ -140,7 +140,7 @@ void test_hattrie_iteration()
         // twice
         str_map_set ( M, key, len, 0 );
 
-        hattrie_iter_next ( i );
+        htr_iterator_next ( i );
     }
 
     if ( count != M->m ) {
@@ -148,7 +148,7 @@ void test_hattrie_iteration()
                   count, M->m );
     }
 
-    hattrie_iter_free ( i );
+    htr_iterator_free ( i );
 
     fprintf ( stderr, "done.\n" );
 }
@@ -165,7 +165,7 @@ void test_hattrie_sorted_iteration()
 {
     fprintf ( stderr, "iterating in order through %zu keys ... \n", k );
 
-    hattrie_iter_t* i = hattrie_iter_begin ( T, true );
+    htr_iterator * i = htr_iterator_begin ( T, true );
 
     size_t count = 0;
     htr_value * u;
@@ -179,13 +179,13 @@ void test_hattrie_sorted_iteration()
     const char *key = NULL;
     size_t len = 0;
 
-    while ( !hattrie_iter_finished ( i ) ) {
+    while ( !htr_iterator_finished ( i ) ) {
         memcpy ( prev_key, key_copy, len );
         prev_key[len] = '\0';
         prev_len = len;
         ++count;
 
-        key = hattrie_iter_key ( i, &len );
+        key = htr_iterator_key ( i, &len );
 
         /* memory for key may be changed on iter, copy it */
         strncpy ( key_copy, key, len );
@@ -194,7 +194,7 @@ void test_hattrie_sorted_iteration()
             fprintf ( stderr, "[error] iteration is not correctly ordered.\n" );
         }
 
-        u = hattrie_iter_val ( i );
+        u = htr_iterator_val ( i );
         v = str_map_get ( M, key, len );
 
         if ( *u != v ) {
@@ -209,7 +209,7 @@ void test_hattrie_sorted_iteration()
         // twice
         str_map_set ( M, key, len, 0 );
 
-        hattrie_iter_next ( i );
+        htr_iterator_next ( i );
     }
 
     if ( count != M->m ) {
@@ -217,7 +217,7 @@ void test_hattrie_sorted_iteration()
                   count, M->m );
     }
 
-    hattrie_iter_free ( i );
+    htr_iterator_free ( i );
     free ( prev_key );
     free ( key_copy );
 
@@ -230,17 +230,17 @@ void test_trie_non_ascii()
     fprintf ( stderr, "checking non-ascii... \n" );
 
     htr_value * u;
-    hattrie_t* T = hattrie_create();
+    htr * T = htr_create();
     char* txt = "\x81\x70";
 
-    u = hattrie_get ( T, txt, strlen ( txt ) );
+    u = htr_get ( T, txt, strlen ( txt ) );
     *u = 10;
 
-    u = hattrie_tryget ( T, txt, strlen ( txt ) );
+    u = htr_tryget ( T, txt, strlen ( txt ) );
     if ( *u != 10 ) {
         fprintf ( stderr, "can't store non-ascii strings\n" );
     }
-    hattrie_free ( T );
+    htr_free ( T );
 
     fprintf ( stderr, "done.\n" );
 }

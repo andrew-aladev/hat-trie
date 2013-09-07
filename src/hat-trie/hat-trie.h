@@ -1,19 +1,10 @@
-/*
- * This file is part of hat-trie
- *
- * Copyright (c) 2011 by Daniel C. Jones <dcjones@cs.washington.edu>
- *
- *
- * This is an implementation of the HAT-trie data structure described in,
- *
- *    Askitis, N., & Sinha, R. (2007). HAT-trie: a cache-conscious trie-based data
- *    structure for strings. Proceedings of the thirtieth Australasian conference on
- *    Computer science-Volume 62 (pp. 97–105). Australian Computer Society, Inc.
- *
- * The HAT-trie is in essence a hybrid data structure, combining tries and hash
- * tables in a clever way to try to get the best of both worlds.
- *
- */
+// This file is part of hat-trie
+// Copyright (c) 2011 by Daniel C. Jones <dcjones@cs.washington.edu>
+// Copyright (c) 2013 by Andrew Aladjev <aladjev.andrew@gmail.com>
+// This is an implementation of the HAT-trie data structure described in,
+// Askitis, N., & Sinha, R. (2007). HAT-trie: a cache-conscious trie-based data structure for strings.
+// Proceedings of the thirtieth Australasian conference on Computer science-Volume 62 (pp. 97–105). Australian Computer Society, Inc.
+// The HAT-trie is in essence a hybrid data structure, combining tries and hash tables in a clever way to try to get the best of both worlds.
 
 #ifndef HTR_HATTRIE_H
 #define HTR_HATTRIE_H
@@ -22,41 +13,31 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct hattrie_t_ hattrie_t;
+typedef struct htr_t htr;
 
-hattrie_t* hattrie_create ( void );           //< Create an empty hat-trie.
-void       hattrie_free   ( hattrie_t* );     //< Free all memory used by a trie.
-hattrie_t* hattrie_dup    ( const hattrie_t* ); //< Duplicate an existing trie.
-void       hattrie_clear  ( hattrie_t* );     //< Remove all entries.
-
-
-/** Find the given key in the trie, inserting it if it does not exist, and
- * returning a pointer to it's key.
- *
- * This pointer is not guaranteed to be valid after additional calls to
- * hattrie_get, hattrie_del, hattrie_clear, or other functions that modifies the
- * trie.
- */
-htr_value * hattrie_get ( hattrie_t*, const char* key, size_t len );
+htr * htr_create ();
+void  htr_free   ( htr * trie );
+void  htr_clear  ( htr * trie );
 
 
-/** Find a given key in the table, returning a NULL pointer if it does not
- * exist. */
-htr_value * hattrie_tryget ( hattrie_t*, const char* key, size_t len );
+// Find the given key in the trie, inserting it if it does not exist, and returning a pointer to it's key.
+// This pointer is not guaranteed to be valid after additional calls to hattrie_get, hattrie_del, hattrie_clear, or other functions that modifies the trie.
+htr_value * htr_get ( htr * trie, const char * key, size_t length );
 
-/** Delete a given key from trie. Returns 0 if successful or -1 if not found.
- */
-int hattrie_del ( hattrie_t* T, const char* key, size_t len );
 
-typedef struct hattrie_iter_t_ hattrie_iter_t;
+// Find a given key in the table, returning a NULL pointer if it does not exist.
+htr_value * htr_tryget ( htr * trie, const char * key, size_t length );
 
-hattrie_iter_t* hattrie_iter_begin     ( const hattrie_t*, bool sorted );
-void            hattrie_iter_next      ( hattrie_iter_t* );
-bool            hattrie_iter_finished  ( hattrie_iter_t* );
-void            hattrie_iter_free      ( hattrie_iter_t* );
-const char*     hattrie_iter_key       ( hattrie_iter_t*, size_t* len );
-htr_value *        hattrie_iter_val       ( hattrie_iter_t* );
+// Delete a given key from trie. Returns 0 if successful or -1 if not found.
+int htr_del ( htr * trie, const char * key, size_t length );
+
+typedef struct htr_iterator_t htr_iterator;
+
+htr_iterator * htr_iterator_begin     ( const htr * trie, bool sorted );
+void           htr_iterator_next      ( htr_iterator * iterator );
+bool           htr_iterator_finished  ( htr_iterator * iterator );
+void           htr_iterator_free      ( htr_iterator * iterator );
+const char *   htr_iterator_key       ( htr_iterator * iterator, size_t * length );
+htr_value  *   htr_iterator_val       ( htr_iterator * iterator );
 
 #endif
-
-
