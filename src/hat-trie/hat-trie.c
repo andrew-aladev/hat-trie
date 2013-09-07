@@ -8,6 +8,7 @@
 #include "hat-trie.h"
 #include "table.h"
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define HT_UNUSED(x) x=x
@@ -359,14 +360,14 @@ htr_value * htr_get ( htr * T, const char* key, size_t len )
     assert ( *node.flag & NODE_TYPE_PURE_BUCKET || *node.flag & NODE_TYPE_HYBRID_BUCKET );
 
     assert ( len > 0 );
-    size_t m_old = node.b->m;
+    size_t m_old = node.b->pairs_count;
     htr_value * val;
     if ( *node.flag & NODE_TYPE_PURE_BUCKET ) {
         val = htr_table_get ( node.b, key + 1, len - 1 );
     } else {
         val = htr_table_get ( node.b, key, len );
     }
-    T->m += ( node.b->m - m_old );
+    T->m += ( node.b->pairs_count - m_old );
 
     return val;
 }

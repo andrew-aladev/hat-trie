@@ -3,6 +3,7 @@
 
 #include <hat-trie/hat-trie.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 

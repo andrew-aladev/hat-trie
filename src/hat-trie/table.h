@@ -1,33 +1,30 @@
 // This file is part of hat-trie.
 // Copyright (c) 2011 by Daniel C. Jones <dcjones@cs.washington.edu>
+// Copyright (c) 2013 by Andrew Aladjev <aladjev.andrew@gmail.com>
 //
 // This is an implementation of the 'cache-conscious' hash tables described in, Askitis, N., & Zobel, J. (2005).
-// Cache-conscious collision resolution in string hash tables.
-// String Processing and Information Retrieval (pp. 91–102). Springer.
+// Cache-conscious collision resolution in string hash tables. String Processing and Information Retrieval (pp. 91–102). Springer.
 //
-// Briefly, the idea is, as opposed to separate chaining with linked lists, to store keys contiguously in one big array,
-// thereby improving the caching behavior, and reducing space requirments.
+// Briefly, the idea is, as opposed to separate chaining with linked lists, to store keys contiguously in one big array, thereby improving the caching behavior, and reducing space requirments.
 
 #ifndef HTR_TABLE_H
 #define HTR_TABLE_H
 
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdbool.h>
 #include "common.h"
 
 typedef struct htr_table_t {
-    // these fields are reserved for hattrie to fiddle with
+    // these fields are reserved for htr to fiddle with
     uint8_t flag;
     uint8_t c0;
     uint8_t c1;
 
-    size_t n;     // number of slots
-    size_t m;     // numbur of key/value pairs stored
+    size_t pairs_count; // number of key/value pairs stored
     size_t max_m; // number of stored keys before we resize
 
-    size_t * slot_sizes;
     htr_slot * slots;
+    size_t *   slots_sizes;
+    size_t     slots_count;
 } htr_table;
 
 extern const double htr_table_max_load_factor;
@@ -53,7 +50,7 @@ uint8_t htr_table_clear ( htr_table * table );
 inline
 size_t htr_table_size ( const htr_table * table )
 {
-    return table->m;
+    return table->pairs_count;
 }
 
 // Find the given key in the table, inserting it if it does not exist, and returning a pointer to it's key.

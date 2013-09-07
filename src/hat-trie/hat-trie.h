@@ -1,6 +1,7 @@
 // This file is part of hat-trie
 // Copyright (c) 2011 by Daniel C. Jones <dcjones@cs.washington.edu>
 // Copyright (c) 2013 by Andrew Aladjev <aladjev.andrew@gmail.com>
+
 // This is an implementation of the HAT-trie data structure described in,
 // Askitis, N., & Sinha, R. (2007). HAT-trie: a cache-conscious trie-based data structure for strings.
 // Proceedings of the thirtieth Australasian conference on Computer science-Volume 62 (pp. 97–105). Australian Computer Society, Inc.
@@ -10,7 +11,6 @@
 #define HTR_HATTRIE_H
 
 #include "common.h"
-#include <stdlib.h>
 #include <stdbool.h>
 
 typedef struct htr_t htr;

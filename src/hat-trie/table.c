@@ -29,9 +29,9 @@ htr_table * htr_table_create_n ( size_t n )
     table->flag = 0;
     table->c0   = table->c1 = '\0';
 
-    table->n = n;
-    table->m = 0;
-    table->max_m = ( size_t ) ( htr_table_max_load_factor * ( double ) table->n );
+    table->slots_count = n;
+    table->pairs_count = 0;
+    table->max_m = ( size_t ) ( htr_table_max_load_factor * ( double ) table->slots_count );
     htr_slot * slots = malloc ( n * sizeof ( htr_slot ) );
     if ( slots == NULL ) {
         free ( table );
@@ -47,7 +47,7 @@ htr_table * htr_table_create_n ( size_t n )
         return NULL;
     }
     memset ( slot_sizes, 0, n * sizeof ( size_t ) );
-    table->slot_sizes = slot_sizes;
+    table->slots_sizes = slot_sizes;
 
     return table;
 }
@@ -58,18 +58,18 @@ void htr_table_free ( htr_table * table )
         return;
     }
     size_t i;
-    for ( i = 0; i < table->n; i++ ) {
+    for ( i = 0; i < table->slots_count; i++ ) {
         free ( table->slots[i] );
     }
     free ( table->slots );
-    free ( table->slot_sizes );
+    free ( table->slots_sizes );
     free ( table );
 }
 
 uint8_t htr_table_clear ( htr_table * table )
 {
     size_t i;
-    for ( i = 0; i < table->n; i++ ) {
+    for ( i = 0; i < table->slots_count; i++ ) {
         free ( table->slots[i] );
     }
 
@@ -80,14 +80,14 @@ uint8_t htr_table_clear ( htr_table * table )
     memset ( slots, 0, htr_table_initial_size * sizeof ( htr_slot ) );
     table->slots = slots;
 
-    size_t * slot_sizes = realloc ( table->slot_sizes, htr_table_initial_size * sizeof ( size_t ) );
-    if ( slot_sizes == NULL ) {
+    size_t * slots_sizes = realloc ( table->slots_sizes, htr_table_initial_size * sizeof ( size_t ) );
+    if ( slots_sizes == NULL ) {
         return 2;
     }
-    memset ( slot_sizes, 0, htr_table_initial_size * sizeof ( size_t ) );
-    table->slot_sizes = slot_sizes;
+    memset ( slots_sizes, 0, htr_table_initial_size * sizeof ( size_t ) );
+    table->slots_sizes = slots_sizes;
 
-    table->n = htr_table_initial_size;
+    table->slots_count = htr_table_initial_size;
 
     return 0;
 }
@@ -125,10 +125,10 @@ static void htr_table_expand ( htr_table * T )
      * One little shortcut we can take on the memory allocation front is to
      * figure out how much memory each slot needs in advance.
      */
-    assert ( T->n > 0 );
-    size_t new_n = 2 * T->n;
-    size_t* slot_sizes = malloc ( new_n * sizeof ( size_t ) );
-    memset ( slot_sizes, 0, new_n * sizeof ( size_t ) );
+    assert ( T->slots_count > 0 );
+    size_t new_n = 2 * T->slots_count;
+    size_t* slots_sizes = malloc ( new_n * sizeof ( size_t ) );
+    memset ( slots_sizes, 0, new_n * sizeof ( size_t ) );
 
     const char* key;
     size_t len = 0;
@@ -136,13 +136,13 @@ static void htr_table_expand ( htr_table * T )
     htr_table_iterator * i = htr_table_iter_begin ( T, false );
     while ( !htr_table_iter_finished ( i ) ) {
         key = htr_table_iter_key ( i, &len );
-        slot_sizes[hash ( key, len ) % new_n] +=
+        slots_sizes[hash ( key, len ) % new_n] +=
             len + sizeof ( htr_value ) + ( len >= 128 ? 2 : 1 );
 
         ++m;
         htr_table_iter_next ( i );
     }
-    assert ( m == T->m );
+    assert ( m == T->pairs_count );
     htr_table_iter_free ( i );
 
 
@@ -150,8 +150,8 @@ static void htr_table_expand ( htr_table * T )
     htr_slot * slots = malloc ( new_n * sizeof ( htr_slot ) );
     size_t j;
     for ( j = 0; j < new_n; ++j ) {
-        if ( slot_sizes[j] > 0 ) {
-            slots[j] = malloc ( slot_sizes[j] );
+        if ( slots_sizes[j] > 0 ) {
+            slots[j] = malloc ( slots_sizes[j] );
         } else slots[j] = NULL;
     }
 
@@ -178,40 +178,40 @@ static void htr_table_expand ( htr_table * T )
         ++m;
         htr_table_iter_next ( i );
     }
-    assert ( m == T->m );
+    assert ( m == T->pairs_count );
     htr_table_iter_free ( i );
 
 
     free ( slots_next );
-    for ( j = 0; j < T->n; ++j ) free ( T->slots[j] );
+    for ( j = 0; j < T->slots_count; ++j ) free ( T->slots[j] );
 
     free ( T->slots );
     T->slots = slots;
 
-    free ( T->slot_sizes );
-    T->slot_sizes = slot_sizes;
+    free ( T->slots_sizes );
+    T->slots_sizes = slots_sizes;
 
-    T->n = new_n;
-    T->max_m = ( size_t ) ( htr_table_max_load_factor * ( double ) T->n );
+    T->slots_count = new_n;
+    T->max_m = ( size_t ) ( htr_table_max_load_factor * ( double ) T->slots_count );
 }
 
 
 static htr_value * get_key ( htr_table * T, const char* key, size_t len, bool insert_missing )
 {
     /* if we are at capacity, preemptively resize */
-    if ( insert_missing && T->m >= T->max_m ) {
+    if ( insert_missing && T->pairs_count >= T->max_m ) {
         htr_table_expand ( T );
     }
 
 
-    uint32_t i = hash ( key, len ) % T->n;
+    uint32_t i = hash ( key, len ) % T->slots_count;
     size_t k;
     htr_slot s;
     htr_value * val;
 
     /* search the array for our key */
     s = T->slots[i];
-    while ( ( size_t ) ( s - T->slots[i] ) < T->slot_sizes[i] ) {
+    while ( ( size_t ) ( s - T->slots[i] ) < T->slots_sizes[i] ) {
         /* get the key length */
         k = keylen ( s );
         s += k < 128 ? 1 : 2;
@@ -236,16 +236,16 @@ static htr_value * get_key ( htr_table * T, const char* key, size_t len, bool in
 
     if ( insert_missing ) {
         /* the key was not found, so we must insert it. */
-        size_t new_size = T->slot_sizes[i];
+        size_t new_size = T->slots_sizes[i];
         new_size += 1 + ( len >= 128 ? 1 : 0 );  // key length
         new_size += len * sizeof ( unsigned char ); // key
         new_size += sizeof ( htr_value );          // value
 
         T->slots[i] = realloc ( T->slots[i], new_size );
 
-        ++T->m;
-        ins_key ( T->slots[i] + T->slot_sizes[i], key, len, &val );
-        T->slot_sizes[i] = new_size;
+        ++T->pairs_count;
+        ins_key ( T->slots[i] + T->slots_sizes[i], key, len, &val );
+        T->slots_sizes[i] = new_size;
 
         return val;
     } else return NULL;
@@ -266,13 +266,13 @@ htr_value * htr_table_tryget ( htr_table * T, const char* key, size_t len )
 
 int htr_table_del ( htr_table * T, const char* key, size_t len )
 {
-    uint32_t i = hash ( key, len ) % T->n;
+    uint32_t i = hash ( key, len ) % T->slots_count;
     size_t k;
     htr_slot s;
 
     /* search the array for our key */
     s = T->slots[i];
-    while ( ( size_t ) ( s - T->slots[i] ) < T->slot_sizes[i] ) {
+    while ( ( size_t ) ( s - T->slots[i] ) < T->slots_sizes[i] ) {
         /* get the key length */
         k = keylen ( s );
         s += k < 128 ? 1 : 2;
@@ -288,9 +288,9 @@ int htr_table_del ( htr_table * T, const char* key, size_t len )
             /* move everything over, resize the array */
             unsigned char* t = s + len + sizeof ( htr_value );
             s -= k < 128 ? 1 : 2;
-            memmove ( s, t, T->slot_sizes[i] - ( size_t ) ( t - T->slots[i] ) );
-            T->slot_sizes[i] -= ( size_t ) ( t - s );
-            --T->m;
+            memmove ( s, t, T->slots_sizes[i] - ( size_t ) ( t - T->slots[i] ) );
+            T->slots_sizes[i] -= ( size_t ) ( t - s );
+            --T->pairs_count;
             return 0;
         }
         /* key not found. */
@@ -335,14 +335,14 @@ static htr_table_sorted_iter_t* htr_table_sorted_iter_begin ( const htr_table * 
 {
     htr_table_sorted_iter_t* i = malloc ( sizeof ( htr_table_sorted_iter_t ) );
     i->T = T;
-    i->xs = malloc ( T->m * sizeof ( htr_slot ) );
+    i->xs = malloc ( T->pairs_count * sizeof ( htr_slot ) );
     i->i = 0;
 
     htr_slot s;
     size_t j, k, u;
-    for ( j = 0, u = 0; j < T->n; ++j ) {
+    for ( j = 0, u = 0; j < T->slots_count; ++j ) {
         s = T->slots[j];
-        while ( s < T->slots[j] + T->slot_sizes[j] ) {
+        while ( s < T->slots[j] + T->slots_sizes[j] ) {
             i->xs[u++] = s;
             k = keylen ( s );
             s += k < 128 ? 1 : 2;
@@ -350,7 +350,7 @@ static htr_table_sorted_iter_t* htr_table_sorted_iter_begin ( const htr_table * 
         }
     }
 
-    qsort ( i->xs, T->m, sizeof ( htr_slot ), cmpkey );
+    qsort ( i->xs, T->pairs_count, sizeof ( htr_slot ), cmpkey );
 
     return i;
 }
@@ -358,7 +358,7 @@ static htr_table_sorted_iter_t* htr_table_sorted_iter_begin ( const htr_table * 
 
 static bool htr_table_sorted_iter_finished ( htr_table_sorted_iter_t* i )
 {
-    return i->i >= i->T->m;
+    return i->i >= i->T->pairs_count;
 }
 
 
@@ -414,9 +414,9 @@ static htr_table_unsorted_iter_t* htr_table_unsorted_iter_begin ( const htr_tabl
     htr_table_unsorted_iter_t* i = malloc ( sizeof ( htr_table_unsorted_iter_t ) );
     i->T = T;
 
-    for ( i->i = 0; i->i < i->T->n; ++i->i ) {
+    for ( i->i = 0; i->i < i->T->slots_count; ++i->i ) {
         i->s = T->slots[i->i];
-        if ( ( size_t ) ( i->s - T->slots[i->i] ) >= T->slot_sizes[i->i] ) continue;
+        if ( ( size_t ) ( i->s - T->slots[i->i] ) >= T->slots_sizes[i->i] ) continue;
         break;
     }
 
@@ -426,7 +426,7 @@ static htr_table_unsorted_iter_t* htr_table_unsorted_iter_begin ( const htr_tabl
 
 static bool htr_table_unsorted_iter_finished ( htr_table_unsorted_iter_t* i )
 {
-    return i->i >= i->T->n;
+    return i->i >= i->T->slots_count;
 }
 
 
@@ -441,13 +441,13 @@ static void htr_table_unsorted_iter_next ( htr_table_unsorted_iter_t* i )
     /* skip to the next key */
     i->s += k + sizeof ( htr_value );
 
-    if ( ( size_t ) ( i->s - i->T->slots[i->i] ) >= i->T->slot_sizes[i->i] ) {
+    if ( ( size_t ) ( i->s - i->T->slots[i->i] ) >= i->T->slots_sizes[i->i] ) {
         do {
             ++i->i;
-        } while ( i->i < i->T->n &&
-                  i->T->slot_sizes[i->i] == 0 );
+        } while ( i->i < i->T->slots_count &&
+                  i->T->slots_sizes[i->i] == 0 );
 
-        if ( i->i < i->T->n ) i->s = i->T->slots[i->i];
+        if ( i->i < i->T->slots_count ) i->s = i->T->slots[i->i];
         else i->s = NULL;
     }
 }
