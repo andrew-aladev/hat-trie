@@ -4,7 +4,8 @@
 #include <stdio.h>
 
 #include "str_map.h"
-#include <hat-trie/hat-trie.h>
+#include "murmur_hash.h"
+#include <hat-trie/trie.h>
 #include <talloc2/tree.h>
 
 /* Simple random string generation. */
@@ -46,7 +47,7 @@ void setup()
         ds[i] = xs[m];
     }
 
-    T = htr_new ( NULL );
+    T = htr_new ( NULL, murmur_hash );
     M = str_map_create();
     fprintf ( stderr, "done.\n" );
 }
@@ -231,7 +232,7 @@ void test_trie_non_ascii()
     fprintf ( stderr, "checking non-ascii... \n" );
 
     htr_value * u;
-    htr * T = htr_new ( NULL );
+    htr * T = htr_new ( NULL, murmur_hash );
     char* txt = "\x81\x70";
 
     u = htr_get ( T, txt, strlen ( txt ) );

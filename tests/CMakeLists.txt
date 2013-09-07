@@ -1,6 +1,6 @@
-set (TABLE       table.c str_map.c)
-set (HATTRIE     hattrie.c str_map.c)
-set (SORTED_ITER sorted_iter.c)
+set (TABLE       table.c str_map.c murmur_hash.c)
+set (HATTRIE     hattrie.c str_map.c murmur_hash.c)
+set (SORTED_ITER sorted_iter.c murmur_hash.c)
 
 if (HTR_SHARED MATCHES true)
     add_executable (${HTR_TARGET}-table ${TABLE})

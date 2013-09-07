@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "str_map.h"
+#include "murmur_hash.h"
 #include <hat-trie/table.h>
 
 /* Simple random string generation. */
@@ -72,7 +73,7 @@ void test_htr_table_insert()
         str_map_set ( M, xs[i], strlen ( xs[i] ), v );
 
 
-        u = htr_table_get ( T, xs[i], strlen ( xs[i] ) );
+        u = htr_table_get ( T, murmur_hash, xs[i], strlen ( xs[i] ) );
         *u += 1;
 
 
@@ -85,9 +86,9 @@ void test_htr_table_insert()
     /* delete some keys */
     for ( j = 0; i < k / 100; ++j ) {
         i = rand() % n;
-        htr_table_del ( T, xs[i], strlen ( xs[i] ) );
+        htr_table_del ( T, murmur_hash, xs[i], strlen ( xs[i] ) );
         str_map_del ( M, xs[i], strlen ( xs[i] ) );
-        u = htr_table_tryget ( T, xs[i], strlen ( xs[i] ) );
+        u = htr_table_tryget ( T, murmur_hash, xs[i], strlen ( xs[i] ) );
         if ( u ) {
             fprintf ( stderr, "[error] deleted node found in htr_table\n" );
         }

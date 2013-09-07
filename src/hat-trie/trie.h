@@ -15,7 +15,7 @@
 
 typedef struct htr_t htr;
 
-htr * htr_new   ( void * ctx );
+htr * htr_new   ( void * ctx, htr_hash_function function );
 void  htr_clear ( htr * trie );
 
 // Find the given key in the trie, inserting it if it does not exist, and returning a pointer to it's key.

@@ -2,7 +2,7 @@
 // Copyright (c) 2011 by Daniel C. Jones <dcjones@cs.washington.edu>
 
 #include "table.h"
-#include "murmurhash3.h"
+#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
@@ -119,7 +119,7 @@ static htr_slot ins_key ( htr_slot s, const char * key, size_t len, htr_value **
 }
 
 
-static void htr_table_expand ( htr_table * T )
+static void htr_table_expand ( htr_table * T, htr_hash_function hash_function )
 {
     /* Resizing a table is essentially building a brand new one.
      * One little shortcut we can take on the memory allocation front is to
@@ -136,7 +136,7 @@ static void htr_table_expand ( htr_table * T )
     htr_table_iterator * i = htr_table_iter_begin ( T, false );
     while ( !htr_table_iter_finished ( i ) ) {
         key = htr_table_iter_key ( i, &len );
-        slots_sizes[hash ( key, len ) % new_n] +=
+        slots_sizes[hash_function ( key, len ) % new_n] +=
             len + sizeof ( htr_value ) + ( len >= 128 ? 2 : 1 );
 
         ++m;
@@ -169,7 +169,7 @@ static void htr_table_expand ( htr_table * T )
     while ( !htr_table_iter_finished ( i ) ) {
 
         key = htr_table_iter_key ( i, &len );
-        h = hash ( key, len ) % new_n;
+        h = hash_function ( key, len ) % new_n;
 
         slots_next[h] = ins_key ( slots_next[h], key, len, &u );
         v = htr_table_iter_val ( i );
@@ -196,15 +196,15 @@ static void htr_table_expand ( htr_table * T )
 }
 
 
-static htr_value * get_key ( htr_table * T, const char* key, size_t len, bool insert_missing )
+static htr_value * get_key ( htr_table * T, htr_hash_function hash_function, const char* key, size_t len, bool insert_missing )
 {
     /* if we are at capacity, preemptively resize */
     if ( insert_missing && T->pairs_count >= T->max_pairs_count ) {
-        htr_table_expand ( T );
+        htr_table_expand ( T, hash_function );
     }
 
 
-    uint32_t i = hash ( key, len ) % T->slots_count;
+    uint32_t i = hash_function ( key, len ) % T->slots_count;
     size_t k;
     htr_slot s;
     htr_value * val;
@@ -252,21 +252,21 @@ static htr_value * get_key ( htr_table * T, const char* key, size_t len, bool in
 }
 
 
-htr_value * htr_table_get ( htr_table * T, const char* key, size_t len )
+htr_value * htr_table_get ( htr_table * T, htr_hash_function hash_function, const char* key, size_t len )
 {
-    return get_key ( T, key, len, true );
+    return get_key ( T, hash_function, key, len, true );
 }
 
 
-htr_value * htr_table_tryget ( htr_table * T, const char* key, size_t len )
+htr_value * htr_table_tryget ( htr_table * T, htr_hash_function hash_function, const char* key, size_t len )
 {
-    return get_key ( T, key, len, false );
+    return get_key ( T, hash_function, key, len, false );
 }
 
 
-int htr_table_del ( htr_table * T, const char* key, size_t len )
+int htr_table_del ( htr_table * T, htr_hash_function hash_function, const char* key, size_t len )
 {
-    uint32_t i = hash ( key, len ) % T->slots_count;
+    uint32_t i = hash_function ( key, len ) % T->slots_count;
     size_t k;
     htr_slot s;
 

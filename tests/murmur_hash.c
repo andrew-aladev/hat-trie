@@ -1,7 +1,7 @@
 /* This is MurmurHash3. The original C++ code was placed in the public domain
  * by its author, Austin Appleby. */
 
-#include "murmurhash3.h"
+#include "murmur_hash.h"
 
 static inline uint32_t fmix ( uint32_t h )
 {
@@ -21,7 +21,7 @@ static inline uint32_t rotl32 ( uint32_t x, int8_t r )
 }
 
 
-uint32_t hash ( const char* data, size_t len_ )
+uint32_t murmur_hash ( const uint8_t * data, size_t len_ )
 {
     const int len = ( int ) len_;
     const int nblocks = len / 4;
@@ -78,4 +78,3 @@ uint32_t hash ( const char* data, size_t len_ )
 
     return h1;
 }
-

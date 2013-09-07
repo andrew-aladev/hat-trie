@@ -55,12 +55,12 @@ size_t htr_table_size ( const htr_table * table )
 
 // Find the given key in the table, inserting it if it does not exist, and returning a pointer to it's key.
 // This pointer is not guaranteed to be valid after additional calls to htr_table_get, htr_table_del, htr_table_clear, or other functions that modifies the table.
-htr_value * htr_table_get ( htr_table * table, const char * key, size_t len );
+htr_value * htr_table_get ( htr_table * table, htr_hash_function hash_function, const char * key, size_t len );
 
 // Find a given key in the table, returning a NULL pointer if it does not exist.
-htr_value * htr_table_tryget ( htr_table * table, const char * key, size_t len );
+htr_value * htr_table_tryget ( htr_table * table, htr_hash_function hash_function, const char * key, size_t len );
 
-int htr_table_del ( htr_table * table, const char * key, size_t len );
+int htr_table_del ( htr_table * table, htr_hash_function hash_function, const char * key, size_t len );
 
 htr_table_iterator * htr_table_iter_begin    ( const htr_table *, bool sorted );
 void                 htr_table_iter_next     ( htr_table_iterator * );

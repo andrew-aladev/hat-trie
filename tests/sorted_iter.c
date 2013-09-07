@@ -1,7 +1,9 @@
 
 /* A quick test of the degree to which ordered iteration is slower than unordered. */
 
-#include <hat-trie/hat-trie.h>
+#include "murmur_hash.h"
+
+#include <hat-trie/trie.h>
 #include <talloc2/tree.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +21,7 @@ void randstr ( char* x, size_t len )
 
 int main()
 {
-    htr * T = htr_new ( NULL );
+    htr * T = htr_new ( NULL, murmur_hash );
     const size_t n = 1000000;  // how many strings
     const size_t m_low  = 50;  // minimum length of each string
     const size_t m_high = 500; // maximum length of each string
