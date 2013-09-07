@@ -61,8 +61,8 @@ void test_htr_table_insert()
     fprintf ( stderr, "inserting %zu keys ... \n", k );
 
     size_t i, j;
-    value_t* u;
-    value_t  v;
+    htr_value * u;
+    htr_value   v;
 
     for ( j = 0; j < k; ++j ) {
         i = rand() % n;
@@ -101,11 +101,11 @@ void test_htr_table_iteration()
 {
     fprintf ( stderr, "iterating through %zu keys ... \n", k );
 
-    htr_table_iter * i = htr_table_iter_begin ( T, false );
+    htr_table_iterator * i = htr_table_iter_begin ( T, false );
 
     size_t count = 0;
-    value_t* u;
-    value_t  v;
+    htr_value * u;
+    htr_value   v;
 
     size_t len;
     const char* key;
@@ -154,11 +154,11 @@ void test_htr_table_sorted_iteration()
 {
     fprintf ( stderr, "iterating in order through %zu keys ... \n", k );
 
-    htr_table_iter * i = htr_table_iter_begin ( T, true );
+    htr_table_iterator * i = htr_table_iter_begin ( T, true );
 
     size_t count = 0;
-    value_t* u;
-    value_t  v;
+    htr_value * u;
+    htr_value   v;
 
     char* prev_key = malloc ( m_high + 1 );
     size_t prev_len = 0;

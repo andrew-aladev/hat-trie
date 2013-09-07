@@ -169,7 +169,7 @@ static void rehash ( str_map* T, size_t new_n )
 }
 
 
-void str_map_set ( str_map* T, const char* key, size_t keylen, value_t value )
+void str_map_set ( str_map* T, const char* key, size_t keylen, htr_value value )
 {
     if ( T->m >= T->max_m ) rehash ( T, T->n * 2 );
 
@@ -199,7 +199,7 @@ void str_map_set ( str_map* T, const char* key, size_t keylen, value_t value )
 }
 
 
-value_t str_map_get ( const str_map* T, const char* key, size_t keylen )
+htr_value str_map_get ( const str_map* T, const char* key, size_t keylen )
 {
     uint32_t h = hash ( key, keylen ) % T->n;
 

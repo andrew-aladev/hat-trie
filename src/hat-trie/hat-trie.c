@@ -38,7 +38,7 @@ typedef struct trie_node_t_ {
     uint8_t flag;
 
     /* the value for the key that is consumed on a trie node */
-    value_t val;
+    htr_value val;
 
     /* Map a character to either a trie_node_t or a htr_table_t. The first byte
      * must be examined to determine which. */
@@ -85,7 +85,7 @@ static node_ptr hattrie_consume ( node_ptr *p, const char **k, size_t *l, unsign
 }
 
 /* use node value and return pointer to it */
-static inline value_t* hattrie_useval ( hattrie_t *T, node_ptr n )
+static inline htr_value * hattrie_useval ( hattrie_t *T, node_ptr n )
 {
     if ( ! ( n.t->flag & NODE_HAS_VAL ) ) {
         n.t->flag |= NODE_HAS_VAL;
@@ -189,7 +189,7 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
         parent.t->xs[node.b->c0].t = alloc_trie_node ( T, node );
 
         /* if the bucket had an empty key, move it to the new trie node */
-        value_t* val = htr_table_tryget ( node.b, NULL, 0 );
+        htr_value * val = htr_table_tryget ( node.b, NULL, 0 );
         if ( val ) {
             parent.t->xs[node.b->c0].t->val     = *val;
             parent.t->xs[node.b->c0].t->flag |= NODE_HAS_VAL;
@@ -212,7 +212,7 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
     size_t len;
     const char* key;
 
-    htr_table_iter * i = htr_table_iter_begin ( node.b, false );
+    htr_table_iterator * i = htr_table_iter_begin ( node.b, false );
     while ( !htr_table_iter_finished ( i ) ) {
         key = htr_table_iter_key ( i, &len );
         assert ( len > 0 );
@@ -282,8 +282,8 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
 
 
     /* distribute keys to the new left or right node */
-    value_t* u;
-    value_t* v;
+    htr_value * u;
+    htr_value * v;
     i = htr_table_iter_begin ( node.b, false );
     while ( !htr_table_iter_finished ( i ) ) {
         key = htr_table_iter_key ( i, &len );
@@ -317,7 +317,7 @@ static void hattrie_split ( hattrie_t* T, node_ptr parent, node_ptr node )
     htr_table_free ( node.b );
 }
 
-value_t* hattrie_get ( hattrie_t* T, const char* key, size_t len )
+htr_value * hattrie_get ( hattrie_t* T, const char* key, size_t len )
 {
     node_ptr parent = T->root;
     assert ( *parent.flag & NODE_TYPE_TRIE );
@@ -360,7 +360,7 @@ value_t* hattrie_get ( hattrie_t* T, const char* key, size_t len )
 
     assert ( len > 0 );
     size_t m_old = node.b->m;
-    value_t* val;
+    htr_value * val;
     if ( *node.flag & NODE_TYPE_PURE_BUCKET ) {
         val = htr_table_get ( node.b, key + 1, len - 1 );
     } else {
@@ -372,7 +372,7 @@ value_t* hattrie_get ( hattrie_t* T, const char* key, size_t len )
 }
 
 
-value_t* hattrie_tryget ( hattrie_t* T, const char* key, size_t len )
+htr_value * hattrie_tryget ( hattrie_t* T, const char* key, size_t len )
 {
     /* find node for given key */
     node_ptr node = hattrie_find ( T, &key, &len );
@@ -440,11 +440,11 @@ struct hattrie_iter_t_ {
 
     /* keep track of keys stored in trie nodes */
     bool    has_nil_key;
-    value_t nil_val;
+    htr_value nil_val;
 
     const hattrie_t* T;
     bool sorted;
-    htr_table_iter * i;
+    htr_table_iterator * i;
     hattrie_node_stack_t* stack;
 };
 
@@ -628,7 +628,7 @@ const char* hattrie_iter_key ( hattrie_iter_t* i, size_t* len )
 }
 
 
-value_t* hattrie_iter_val ( hattrie_iter_t* i )
+htr_value * hattrie_iter_val ( hattrie_iter_t* i )
 {
     if ( i->has_nil_key ) return &i->nil_val;
 

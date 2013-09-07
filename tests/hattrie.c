@@ -70,8 +70,8 @@ void test_hattrie_insert()
     fprintf ( stderr, "inserting %zu keys ... \n", k );
 
     size_t i, j;
-    value_t* u;
-    value_t  v;
+    htr_value * u;
+    htr_value   v;
 
     for ( j = 0; j < k; ++j ) {
         i = rand() % n;
@@ -114,8 +114,8 @@ void test_hattrie_iteration()
     hattrie_iter_t* i = hattrie_iter_begin ( T, false );
 
     size_t count = 0;
-    value_t* u;
-    value_t  v;
+    htr_value * u;
+    htr_value   v;
 
     size_t len;
     const char* key;
@@ -168,8 +168,8 @@ void test_hattrie_sorted_iteration()
     hattrie_iter_t* i = hattrie_iter_begin ( T, true );
 
     size_t count = 0;
-    value_t* u;
-    value_t  v;
+    htr_value * u;
+    htr_value   v;
 
     char* key_copy = malloc ( m_high + 1 );
     char* prev_key = malloc ( m_high + 1 );
@@ -229,7 +229,7 @@ void test_trie_non_ascii()
 {
     fprintf ( stderr, "checking non-ascii... \n" );
 
-    value_t* u;
+    htr_value * u;
     hattrie_t* T = hattrie_create();
     char* txt = "\x81\x70";
 
