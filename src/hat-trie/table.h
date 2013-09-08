@@ -30,23 +30,17 @@ typedef struct htr_table_t {
 extern const double htr_table_max_load_factor;
 extern const size_t htr_table_initial_size;
 
-// Create an empty hash table, with n slots reserved.
 htr_table * htr_table_new_n ( size_t n );
 
-// Create an empty hash table.
 inline
 htr_table * htr_table_new ()
 {
     return htr_table_new_n ( htr_table_initial_size );
 }
 
-// Free all memory used by a table.
 void htr_table_free ( htr_table * table );
-
-// Remove all entries.
 uint8_t htr_table_clear ( htr_table * table );
 
-// Number of stored keys.
 inline
 size_t htr_table_size ( const htr_table * table )
 {
@@ -62,11 +56,11 @@ htr_value * htr_table_tryget ( htr_table * table, htr_hash_function hash_functio
 
 int htr_table_del ( htr_table * table, htr_hash_function hash_function, const char * key, size_t len );
 
-htr_table_iterator * htr_table_iter_begin    ( const htr_table *, bool sorted );
-void                 htr_table_iter_next     ( htr_table_iterator * );
-bool                 htr_table_iter_finished ( htr_table_iterator * );
-void                 htr_table_iter_free     ( htr_table_iterator * );
-const char *         htr_table_iter_key      ( htr_table_iterator *, size_t * len );
-htr_value *          htr_table_iter_val      ( htr_table_iterator * );
+htr_table_iterator * htr_table_iterator_begin    ( const htr_table *, bool sorted );
+void                 htr_table_iterator_next     ( htr_table_iterator * );
+bool                 htr_table_iterator_finished ( htr_table_iterator * );
+void                 htr_table_iterator_free     ( htr_table_iterator * );
+const char *         htr_table_iterator_key      ( htr_table_iterator *, size_t * len );
+htr_value *          htr_table_iterator_val      ( htr_table_iterator * );
 
 #endif

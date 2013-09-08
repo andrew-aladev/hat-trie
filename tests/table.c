@@ -102,7 +102,7 @@ void test_htr_table_iteration()
 {
     fprintf ( stderr, "iterating through %zu keys ... \n", k );
 
-    htr_table_iterator * i = htr_table_iter_begin ( T, false );
+    htr_table_iterator * i = htr_table_iterator_begin ( T, false );
 
     size_t count = 0;
     htr_value * u;
@@ -111,11 +111,11 @@ void test_htr_table_iteration()
     size_t len;
     const char* key;
 
-    while ( !htr_table_iter_finished ( i ) ) {
+    while ( !htr_table_iterator_finished ( i ) ) {
         ++count;
 
-        key = htr_table_iter_key ( i, &len );
-        u   = htr_table_iter_val ( i );
+        key = htr_table_iterator_key ( i, &len );
+        u   = htr_table_iterator_val ( i );
         v   = str_map_get ( M, key, len );
 
         if ( *u != v ) {
@@ -130,7 +130,7 @@ void test_htr_table_iteration()
         // twice
         str_map_set ( M, key, len, 0 );
 
-        htr_table_iter_next ( i );
+        htr_table_iterator_next ( i );
     }
 
     if ( count != M->m ) {
@@ -138,7 +138,7 @@ void test_htr_table_iteration()
                   count, M->m );
     }
 
-    htr_table_iter_free ( i );
+    htr_table_iterator_free ( i );
 
     fprintf ( stderr, "done.\n" );
 }
@@ -155,7 +155,7 @@ void test_htr_table_sorted_iteration()
 {
     fprintf ( stderr, "iterating in order through %zu keys ... \n", k );
 
-    htr_table_iterator * i = htr_table_iter_begin ( T, true );
+    htr_table_iterator * i = htr_table_iterator_begin ( T, true );
 
     size_t count = 0;
     htr_value * u;
@@ -167,17 +167,17 @@ void test_htr_table_sorted_iteration()
     const char *key = NULL;
     size_t len = 0;
 
-    while ( !htr_table_iter_finished ( i ) ) {
+    while ( !htr_table_iterator_finished ( i ) ) {
         memcpy ( prev_key, key, len );
         prev_len = len;
         ++count;
 
-        key = htr_table_iter_key ( i, &len );
+        key = htr_table_iterator_key ( i, &len );
         if ( prev_key != NULL && cmpkey ( prev_key, prev_len, key, len ) > 0 ) {
             fprintf ( stderr, "[error] iteration is not correctly ordered.\n" );
         }
 
-        u  = htr_table_iter_val ( i );
+        u  = htr_table_iterator_val ( i );
         v  = str_map_get ( M, key, len );
 
         if ( *u != v ) {
@@ -192,10 +192,10 @@ void test_htr_table_sorted_iteration()
         // twice
         str_map_set ( M, key, len, 0 );
 
-        htr_table_iter_next ( i );
+        htr_table_iterator_next ( i );
     }
 
-    htr_table_iter_free ( i );
+    htr_table_iterator_free ( i );
     free ( prev_key );
 
     fprintf ( stderr, "done.\n" );

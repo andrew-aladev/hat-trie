@@ -171,8 +171,9 @@ htr * htr_new ( void * ctx, htr_hash_function hash_function )
     trie->pairs_count   = 0;
     trie->hash_function = hash_function;
 
+    htr_table * table = htr_table_new ();
     htr_node_ptr node;
-    node.table = htr_table_new ();
+    node.table = table;
     node.table->flag = NODE_TYPE_HYBRID_BUCKET;
     node.table->c0 = 0x00;
     node.table->c1 = NODE_MAXCHAR;
@@ -219,14 +220,14 @@ static void hattrie_split ( htr * T, htr_node_ptr parent, htr_node_ptr node )
     size_t len;
     const char* key;
 
-    htr_table_iterator * i = htr_table_iter_begin ( node.table, false );
-    while ( !htr_table_iter_finished ( i ) ) {
-        key = htr_table_iter_key ( i, &len );
+    htr_table_iterator * i = htr_table_iterator_begin ( node.table, false );
+    while ( !htr_table_iterator_finished ( i ) ) {
+        key = htr_table_iterator_key ( i, &len );
         assert ( len > 0 );
         cs[ ( unsigned char ) key[0]] += 1;
-        htr_table_iter_next ( i );
+        htr_table_iterator_next ( i );
     }
-    htr_table_iter_free ( i );
+    htr_table_iterator_free ( i );
 
     /* choose a split point */
     unsigned int left_m, right_m, all_m;
@@ -291,10 +292,10 @@ static void hattrie_split ( htr * T, htr_node_ptr parent, htr_node_ptr node )
     /* distribute keys to the new left or right node */
     htr_value * u;
     htr_value * v;
-    i = htr_table_iter_begin ( node.table, false );
-    while ( !htr_table_iter_finished ( i ) ) {
-        key = htr_table_iter_key ( i, &len );
-        u   = htr_table_iter_val ( i );
+    i = htr_table_iterator_begin ( node.table, false );
+    while ( !htr_table_iterator_finished ( i ) ) {
+        key = htr_table_iterator_key ( i, &len );
+        u   = htr_table_iterator_val ( i );
         assert ( len > 0 );
 
         /* left */
@@ -317,10 +318,10 @@ static void hattrie_split ( htr * T, htr_node_ptr parent, htr_node_ptr node )
             *v = *u;
         }
 
-        htr_table_iter_next ( i );
+        htr_table_iterator_next ( i );
     }
 
-    htr_table_iter_free ( i );
+    htr_table_iterator_free ( i );
     htr_table_free ( node.table );
 }
 
@@ -519,7 +520,7 @@ static void htr_iterator_nextnode ( htr_iterator * i )
             i->level = level - 1;
         }
 
-        i->i = htr_table_iter_begin ( node.table, i->sorted );
+        i->i = htr_table_iterator_begin ( node.table, i->sorted );
     }
 }
 
@@ -543,16 +544,16 @@ htr_iterator * htr_iterator_begin ( const htr * T, bool sorted )
     i->stack->level  = 0;
 
 
-    while ( ( ( i->i == NULL || htr_table_iter_finished ( i->i ) ) && !i->has_nil_key ) &&
+    while ( ( ( i->i == NULL || htr_table_iterator_finished ( i->i ) ) && !i->has_nil_key ) &&
             i->stack != NULL ) {
 
-        htr_table_iter_free ( i->i );
+        htr_table_iterator_free ( i->i );
         i->i = NULL;
         htr_iterator_nextnode ( i );
     }
 
-    if ( i->i != NULL && htr_table_iter_finished ( i->i ) ) {
-        htr_table_iter_free ( i->i );
+    if ( i->i != NULL && htr_table_iterator_finished ( i->i ) ) {
+        htr_table_iterator_free ( i->i );
         i->i = NULL;
     }
 
@@ -564,24 +565,24 @@ void htr_iterator_next ( htr_iterator * i )
 {
     if ( htr_iterator_finished ( i ) ) return;
 
-    if ( i->i != NULL && !htr_table_iter_finished ( i->i ) ) {
-        htr_table_iter_next ( i->i );
+    if ( i->i != NULL && !htr_table_iterator_finished ( i->i ) ) {
+        htr_table_iterator_next ( i->i );
     } else if ( i->has_nil_key ) {
         i->has_nil_key = false;
         i->nil_val = 0;
         htr_iterator_nextnode ( i );
     }
 
-    while ( ( ( i->i == NULL || htr_table_iter_finished ( i->i ) ) && !i->has_nil_key ) &&
+    while ( ( ( i->i == NULL || htr_table_iterator_finished ( i->i ) ) && !i->has_nil_key ) &&
             i->stack != NULL ) {
 
-        htr_table_iter_free ( i->i );
+        htr_table_iterator_free ( i->i );
         i->i = NULL;
         htr_iterator_nextnode ( i );
     }
 
-    if ( i->i != NULL && htr_table_iter_finished ( i->i ) ) {
-        htr_table_iter_free ( i->i );
+    if ( i->i != NULL && htr_table_iterator_finished ( i->i ) ) {
+        htr_table_iterator_free ( i->i );
         i->i = NULL;
     }
 }
@@ -596,7 +597,7 @@ bool htr_iterator_finished ( htr_iterator * i )
 void htr_iterator_free ( htr_iterator * i )
 {
     if ( i == NULL ) return;
-    if ( i->i ) htr_table_iter_free ( i->i );
+    if ( i->i ) htr_table_iterator_free ( i->i );
 
     hattrie_node_stack_t* next;
     while ( i->stack ) {
@@ -620,7 +621,7 @@ const char* htr_iterator_key ( htr_iterator * i, size_t* len )
     if ( i->has_nil_key ) {
         subkey = NULL;
         sublen = 0;
-    } else subkey = htr_table_iter_key ( i->i, &sublen );
+    } else subkey = htr_table_iterator_key ( i->i, &sublen );
 
     if ( i->keysize < i->level + sublen + 1 ) {
         while ( i->keysize < i->level + sublen + 1 ) i->keysize *= 2;
@@ -637,12 +638,11 @@ const char* htr_iterator_key ( htr_iterator * i, size_t* len )
 
 htr_value * htr_iterator_val ( htr_iterator * i )
 {
-    if ( i->has_nil_key ) return &i->nil_val;
+    if ( i->has_nil_key ) {
+        return &i->nil_val;
+    }
 
     if ( htr_iterator_finished ( i ) ) return NULL;
 
-    return htr_table_iter_val ( i->i );
+    return htr_table_iterator_val ( i->i );
 }
-
-
-

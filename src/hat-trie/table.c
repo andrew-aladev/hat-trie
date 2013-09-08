@@ -133,17 +133,17 @@ static void htr_table_expand ( htr_table * T, htr_hash_function hash_function )
     const char* key;
     size_t len = 0;
     size_t m = 0;
-    htr_table_iterator * i = htr_table_iter_begin ( T, false );
-    while ( !htr_table_iter_finished ( i ) ) {
-        key = htr_table_iter_key ( i, &len );
+    htr_table_iterator * i = htr_table_iterator_begin ( T, false );
+    while ( !htr_table_iterator_finished ( i ) ) {
+        key = htr_table_iterator_key ( i, &len );
         slots_sizes[hash_function ( key, len ) % new_n] +=
             len + sizeof ( htr_value ) + ( len >= 128 ? 2 : 1 );
 
         ++m;
-        htr_table_iter_next ( i );
+        htr_table_iterator_next ( i );
     }
     assert ( m == T->pairs_count );
-    htr_table_iter_free ( i );
+    htr_table_iterator_free ( i );
 
 
     /* allocate slots */
@@ -165,21 +165,21 @@ static void htr_table_expand ( htr_table * T, htr_hash_function hash_function )
     m = 0;
     htr_value * u;
     htr_value * v;
-    i = htr_table_iter_begin ( T, false );
-    while ( !htr_table_iter_finished ( i ) ) {
+    i = htr_table_iterator_begin ( T, false );
+    while ( !htr_table_iterator_finished ( i ) ) {
 
-        key = htr_table_iter_key ( i, &len );
+        key = htr_table_iterator_key ( i, &len );
         h = hash_function ( key, len ) % new_n;
 
         slots_next[h] = ins_key ( slots_next[h], key, len, &u );
-        v = htr_table_iter_val ( i );
+        v = htr_table_iterator_val ( i );
         *u = *v;
 
         ++m;
-        htr_table_iter_next ( i );
+        htr_table_iterator_next ( i );
     }
     assert ( m == T->pairs_count );
-    htr_table_iter_free ( i );
+    htr_table_iterator_free ( i );
 
 
     free ( slots_next );
@@ -507,7 +507,7 @@ struct htr_table_iterator_t {
 };
 
 
-htr_table_iterator * htr_table_iter_begin ( const htr_table * T, bool sorted )
+htr_table_iterator * htr_table_iterator_begin ( const htr_table * T, bool sorted )
 {
     htr_table_iterator * i = malloc ( sizeof ( htr_table_iterator ) );
     i->sorted = sorted;
@@ -517,21 +517,21 @@ htr_table_iterator * htr_table_iter_begin ( const htr_table * T, bool sorted )
 }
 
 
-void htr_table_iter_next ( htr_table_iterator * i )
+void htr_table_iterator_next ( htr_table_iterator * i )
 {
     if ( i->sorted ) htr_table_sorted_iter_next ( i->i.sorted );
     else           htr_table_unsorted_iter_next ( i->i.unsorted );
 }
 
 
-bool htr_table_iter_finished ( htr_table_iterator * i )
+bool htr_table_iterator_finished ( htr_table_iterator * i )
 {
     if ( i->sorted ) return htr_table_sorted_iter_finished ( i->i.sorted );
     else           return htr_table_unsorted_iter_finished ( i->i.unsorted );
 }
 
 
-void htr_table_iter_free ( htr_table_iterator * i )
+void htr_table_iterator_free ( htr_table_iterator * i )
 {
     if ( i == NULL ) return;
     if ( i->sorted ) htr_table_sorted_iter_free ( i->i.sorted );
@@ -540,14 +540,14 @@ void htr_table_iter_free ( htr_table_iterator * i )
 }
 
 
-const char* htr_table_iter_key ( htr_table_iterator * i, size_t* len )
+const char* htr_table_iterator_key ( htr_table_iterator * i, size_t* len )
 {
     if ( i->sorted ) return htr_table_sorted_iter_key ( i->i.sorted, len );
     else           return htr_table_unsorted_iter_key ( i->i.unsorted, len );
 }
 
 
-htr_value * htr_table_iter_val ( htr_table_iterator * i )
+htr_value * htr_table_iterator_val ( htr_table_iterator * i )
 {
     if ( i->sorted ) return htr_table_sorted_iter_val ( i->i.sorted );
     else           return htr_table_unsorted_iter_val ( i->i.unsorted );
@@ -558,3 +558,5 @@ htr_table * htr_table_new();
 
 extern inline
 size_t htr_table_size ( const htr_table * table );
+
+
