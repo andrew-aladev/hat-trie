@@ -3,7 +3,6 @@
 
 #include "table.h"
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 
 const double htr_table_max_load_factor    = 100000.0; // arbitrary large number => don't resize
@@ -121,11 +120,8 @@ static htr_slot ins_key ( htr_slot s, const char * key, size_t len, htr_value **
 
 static void htr_table_expand ( htr_table * T, htr_hash_function hash_function )
 {
-    /* Resizing a table is essentially building a brand new one.
-     * One little shortcut we can take on the memory allocation front is to
-     * figure out how much memory each slot needs in advance.
-     */
-    assert ( T->slots_count > 0 );
+    // Resizing a table is essentially building a brand new one.
+    // One little shortcut we can take on the memory allocation front is to figure out how much memory each slot needs in advance.
     size_t new_n = 2 * T->slots_count;
     size_t* slots_sizes = malloc ( new_n * sizeof ( size_t ) );
     memset ( slots_sizes, 0, new_n * sizeof ( size_t ) );
@@ -142,7 +138,6 @@ static void htr_table_expand ( htr_table * T, htr_hash_function hash_function )
         ++m;
         htr_table_iterator_next ( i );
     }
-    assert ( m == T->pairs_count );
     htr_table_iterator_free ( i );
 
 
@@ -178,7 +173,6 @@ static void htr_table_expand ( htr_table * T, htr_hash_function hash_function )
         ++m;
         htr_table_iterator_next ( i );
     }
-    assert ( m == T->pairs_count );
     htr_table_iterator_free ( i );
 
 

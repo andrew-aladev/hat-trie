@@ -4,7 +4,6 @@
 
 #include "trie.h"
 #include "table.h"
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -76,7 +75,6 @@ htr_node_ptr consume ( htr_node_ptr * p, const char ** k, size_t * l, unsigned b
 
     // copy and writeback variables if it's faster
 
-    assert ( *p->flag & NODE_TYPE_TRIE );
     return node;
 }
 
@@ -108,7 +106,6 @@ int clear_value ( htr * trie, htr_node_ptr node )
 static htr_node_ptr hattrie_find ( htr* T, const char **key, size_t *len )
 {
     htr_node_ptr parent = T->root;
-    assert ( *parent.flag & NODE_TYPE_TRIE );
 
     if ( *len == 0 ) return parent;
 
@@ -186,12 +183,6 @@ htr * htr_new ( void * ctx, htr_hash_function hash_function )
  */
 static void hattrie_split ( htr * T, htr_node_ptr parent, htr_node_ptr node )
 {
-    /* only buckets may be split */
-    assert ( *node.flag & NODE_TYPE_PURE_BUCKET ||
-             *node.flag & NODE_TYPE_HYBRID_BUCKET );
-
-    assert ( *parent.flag & NODE_TYPE_TRIE );
-
     if ( *node.flag & NODE_TYPE_PURE_BUCKET ) {
         /* turn the pure bucket into a hybrid bucket */
         parent.trie_node->xs[node.table->c0].trie_node = alloc_trie_node ( T, node );
@@ -223,7 +214,6 @@ static void hattrie_split ( htr * T, htr_node_ptr parent, htr_node_ptr node )
     htr_table_iterator * i = htr_table_iterator_begin ( node.table, false );
     while ( !htr_table_iterator_finished ( i ) ) {
         key = htr_table_iterator_key ( i, &len );
-        assert ( len > 0 );
         cs[ ( unsigned char ) key[0]] += 1;
         htr_table_iterator_next ( i );
     }
@@ -296,7 +286,6 @@ static void hattrie_split ( htr * T, htr_node_ptr parent, htr_node_ptr node )
     while ( !htr_table_iterator_finished ( i ) ) {
         key = htr_table_iterator_key ( i, &len );
         u   = htr_table_iterator_val ( i );
-        assert ( len > 0 );
 
         /* left */
         if ( ( unsigned char ) key[0] <= j ) {
@@ -328,13 +317,11 @@ static void hattrie_split ( htr * T, htr_node_ptr parent, htr_node_ptr node )
 htr_value * htr_get ( htr * T, const char* key, size_t len )
 {
     htr_node_ptr parent = T->root;
-    assert ( *parent.flag & NODE_TYPE_TRIE );
 
     if ( len == 0 ) return &parent.trie_node->value;
 
     /* consume all trie nodes, now parent must be trie and child anything */
     htr_node_ptr node = consume ( &parent, &key, &len, 0 );
-    assert ( *parent.flag & NODE_TYPE_TRIE );
 
     /* if the key has been consumed on a trie node, use its value */
     if ( len == 0 ) {
@@ -364,9 +351,6 @@ htr_value * htr_get ( htr * T, const char* key, size_t len )
         }
     }
 
-    assert ( *node.flag & NODE_TYPE_PURE_BUCKET || *node.flag & NODE_TYPE_HYBRID_BUCKET );
-
-    assert ( len > 0 );
     size_t m_old = node.table->pairs_count;
     htr_value * val;
     if ( *node.flag & NODE_TYPE_PURE_BUCKET ) {
@@ -400,7 +384,6 @@ htr_value * htr_tryget ( htr * T, const char* key, size_t len )
 int htr_del ( htr * T, const char* key, size_t len )
 {
     htr_node_ptr parent = T->root;
-    assert ( *parent.flag & NODE_TYPE_TRIE );
 
     /* find node for deletion */
     htr_node_ptr node = hattrie_find ( T, &key, &len );
