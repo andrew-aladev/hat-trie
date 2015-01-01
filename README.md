@@ -30,5 +30,3 @@ Installation
     make install
 
 To use the library, include `hat-trie.h` and link using `lhat-trie`.
-
-
